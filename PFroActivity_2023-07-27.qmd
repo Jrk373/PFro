@@ -1,9 +1,6 @@
 ---
 title: "Peer and Family Run Organizational Activity in Northern Arizona"
 author: "John Ryan Kivela, MA"
-format: html
-editor: visual
-author: 
   name: "John Ryan Kivela, MA"
   email: "Ryan.Kivela@narbha.org"
 date: today
