@@ -15,3 +15,348 @@ format:
     footnotes-hover: true
 ---
 
+```{r}
+#| label: Setup
+#| include: false
+#| echo: false
+#| warning: false
+#| error: false
+
+## Load Libraries
+library(tidyverse)
+library(readxl)
+library(reprex)
+
+# table for inline code
+InLineCode <- data.frame(
+  Test = "test"
+  )
+
+data("county.map")
+
+AZ_County_Map <- (c("Apache", "Coconino", "Mohave", "Navajo", "Yavapai"))
+Provider_ShortName <- (c("CBI", "CPIH", "EHS", "LCBHC", "MMHC", "SHG", "SBH", "TGC", "WYGC"))
+```
+
+# Introduction
+
+The Alliance is researching the prevalence and impact of Peer and Family Run Organizations (PFros) on members of the alliance. 
+
+# Things we looked at
+-   A
+-   B
+
+# Method
+
+First we extracted all claims for the 2022 VBP Measurement Year (1/1/2022-12/31/2022) from the BCBSAZ-Health Choice data warehouse.
+
+```{sql}
+
+#| label: BH Claims Pull
+#| eval: false
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+
+-- Declare start and end variables
+DECLARE @start DATE = '2022-01-22';
+DECLARE @end DATE = '2022-12-31';
+-- This is some sql code that extracts all claims by specific PFros, as outlined by NPI below.
+
+-- Check if the temporary table exists and drop it if it does
+IF OBJECT_ID('tempdb..#ValueSetListMy2023') IS NOT NULL
+    DROP TABLE #ValueSetListMy2023;
+
+-- Create a temporary table
+CREATE TABLE #ValueSetListMy2023 (Code VARCHAR(100) COLLATE SQL_Latin1_General_CP1_CI_AS);
+
+-- Insert values into the temporary table
+INSERT INTO #ValueSetListMy2023 (Code)
+VALUES ('1528415650'), ('1528415650'), ('1932373867'), ('1891969879'), ('1891969879'), ('1679747505'), ('1679747505'), ('1760656698'), ('1760656698'), ('1669646592'), ('1669646592'), ('1164799987'), ('1437599230'), ('1811454754'), ('1467751511'), ('1467751511'), ('1073935326'), ('1073935326'), ('1497815567'), ('1366884413'), ('1366884413'), ('1851735369'), ('1407257595'), ('1992816060');
+
+-- Query to retrieve data from the claims.dbo.shcavos table
+SELECT DISTINCT
+	shcavos.primaryID, 
+	id.BCBSMedicaidId AS MemberID,
+	shcavos.AHCCCSID,
+	shcavos.MemberCounty,
+	shcavos.MemberZipCode,
+	shcavos.MemberACCGSA,
+	shcavos.ra,
+	shcavos.begDate,
+	shcavos.svccode,
+	shcavos.ProviderName,
+	shcavos.Placesvc,
+	shcavos.ProviderType,
+	shcavos.calcnetpd,
+	shcavos.units,
+	shcavos.PaySource,
+	shcavos.PlanType,
+	shcavos.AdmitDate,
+	shcavos.DischargeDate,
+	shcavos.RenderingProviderNpi,
+	shcavos.RenderingProviderCounty,
+	shcavos.RenderingProviderZipCode,
+    shcavos.PrimaryDiagnosis,
+    shcavos.Dx1,
+    shcavos.Dx2,
+    shcavos.Dx3,
+    shcavos.Dx4,
+    shcavos.Dx5,
+    shcavos.Dx6,
+    shcavos.Dx7,
+    shcavos.Dx8,
+    shcavos.Dx9,
+    shcavos.Dx10,
+    shcavos.Dx11,
+    shcavos.Dx12,
+    CASE WHEN v.Code IS NOT NULL THEN 'True' ELSE 'False' END AS MatchFound
+FROM claims.dbo.shcavos AS shcavos
+LEFT JOIN GlobalMembers.dbo.ClientIdPlus id ON shcavos.primaryID = id.primaryID
+LEFT JOIN #ValueSetListMy2023 AS v ON shcavos.RenderingProviderNpi COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+                                    OR shcavos.Dx1 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+                                    OR shcavos.Dx2 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+                                    OR shcavos.Dx3 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+                                    OR shcavos.Dx4 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+                                    OR shcavos.Dx5 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+                                    OR shcavos.Dx6 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+                                    OR shcavos.Dx7 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+                                    OR shcavos.Dx8 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+                                    OR shcavos.Dx9 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+                                    OR shcavos.Dx10 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+                                    OR shcavos.Dx11 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+                                    OR shcavos.Dx12 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
+WHERE shcavos.begDate BETWEEN @start AND @end
+AND CASE WHEN v.Code IS NOT NULL THEN 'True' ELSE 'False' END = 'True'
+AND shcavos.EncounterStatus = 'AP';
+```
+
+Then we extracted the current member roster from BCBSAZ Health Choice data warehouse
+
+```{sql}
+#| label: Member Roster Pull
+#| eval: false
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+-- This is the code to extract Alliance ACO members from HCA data warehouse
+-- Updated 5/2/23 by JRK
+
+SELECT dm.primaryId
+	, dm.ahcccsId
+	, cid.lastName
+	, cid.firstName
+	, cid.sex
+	, cid.dob
+	, cid.zipCode
+	, da.resCountyName
+	, dm.bhhShortname
+	, dm.bhhEffectiveDate
+	, dm.lineOfBusiness
+	, dm.bhc
+	, dm.disenrollmentDate
+
+
+FROM 
+globalMembers.dbo.dailyMembershipAllArizonaEnrollments dm
+LEFT JOIN globalMembers.dbo.clientIdPlus cid ON dm.primaryId = cid.primaryId
+LEFT JOIN globalMembers.dbo.dailyMembershipAllArizonaAddresses da ON dm.primaryId = da.primaryId
+
+WHERE
+dm.LineOfBusiness = 'ArizonaACC'
+```
+
+
+
+```{r}
+#| label: Load PFro Claims
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+PFroBHClaims <- read_xlsx ("./data/BHClaims.xlsx", sheet = "Sheet1")
+
+# Rename the column
+colnames(PFroBHClaims)[colnames(PFroBHClaims) == "begDate"] <- "DateOfService"
+
+```
+
+Then we connected enrollment data to the claims.
+
+```{r}
+#| label: Load Global Members Roster
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+ 
+GlblMmbrshp <- read_xlsx("./data/data_original_glblmbrs_2023-07-26_globalMembersRoster.xlsx", sheet = "Sheet1")
+
+# Calculate active members based on BCBSAZ auto-enrollment
+NAZMmbrshp <- GlblMmbrshp |> 
+  #filter(disenrollmentDate == "NULL") |> 
+  filter(resCountyName %in% AZ_County_Map) |>
+  filter(bhhShortname %in% Provider_ShortName) |> 
+  mutate(bhhShortname = 
+           if_else((bhhShortname == "SBH"), "SBHS", 
+              if_else((bhhShortname == "WYGC"), "PH", 
+                bhhShortname)
+           ))
+
+```
+
+
+```{r}
+#| label: Merge Enrollment
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+# Rename the column "ahcccsId" to "AHCCCSID"
+colnames(NAZMmbrshp)[colnames(NAZMmbrshp) == "ahcccsId"] <- "AHCCCSID"
+
+# Merge the data frames
+PFroActivity <- merge(x = NAZMmbrshp,
+                      y = PFroBHClaims,
+                      by = "AHCCCSID"
+                      )
+
+```
+
+Then we bring in the VBP Quality Roster to identify members who have also been counted
+
+```{r}
+#| label: Load VBP data
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+VBPQR <- read.csv("./data/VBPQR_AllAPsCombined_Cleaned_complete_2023-07-21.csv")
+
+# Rename the column 
+colnames(VBPQR)[colnames(VBPQR) == "Member.ID"] <- "MemberID"
+
+```
+
+Now append each record with possible VBP tokens
+
+```{r}
+#| label: Append VBP data to table
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+# Perform a left join to add "VBPQR$Measure" and "VBPQR$Gap.Status" to PFroActivity
+PFroActivity <- merge(x = PFroActivity,
+                      y = VBPQR[, c("MemberID", "Measure", "Gap.Status")],
+                      by.x = "MemberID",
+                      by.y = "MemberID",
+                      all.x = TRUE)
+
+# Add the "isVBPQR" column based on matching MemberID
+PFroActivity$isVBPQR <- ifelse(!is.na(PFroActivity$Measure), "VBP", "NoVBP")
+
+```
+
+
+Now append the description words for the svccodes
+
+```{r}
+#| label: Append B2 Matrix data to table
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+B2MatrixDesc <- read_xlsx("./data/B2MatrixDescriptions.xlsx", sheet = "Sheet1")
+
+# Rename the column 
+colnames(B2MatrixDesc)[colnames(B2MatrixDesc) == "Code"] <- "svccode"
+
+# Perform a left join to add "VBPQR$Measure" and "VBPQR$Gap.Status" to PFroActivity
+PFroActivity <- merge(x = PFroActivity,
+                      y = B2MatrixDesc,
+                      by = "svccode",
+                      all.x = TRUE)
+
+```
+
+Now add in differentiators for diagnostic group range
+
+```{r}
+#| label: Append Dx Group Range to table
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+ICD10DxAndGroupsCombined <- read_csv("./data/ICD10andBHGroupingsCombined.csv")
+
+# Rename the column 
+colnames(ICD10DxAndGroupsCombined)[colnames(ICD10DxAndGroupsCombined) == "primaryDiagnosis"] <- "PrimaryDiagnosis"
+
+PFroActivity <- merge(x = PFroActivity,
+                      y = ICD10DxAndGroupsCombined,
+                      by = "PrimaryDiagnosis",
+                      all.x = TRUE)
+```
+
+Start to dial the data set in to specificy Alliance members using GSA
+
+```{r}
+#| label: DIal in the data set
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+# Filter MemberACCGSA to only include "North" values
+PFroActivity <- PFroActivity[PFroActivity$MemberACCGSA == "North", ]
+
+# Now select the key variables for analysis
+PFroSummary <- PFroActivity |> 
+  select(
+    MemberID,
+    AHCCCSID,
+    primaryId,
+    ra,
+    lastName,
+    firstName,
+    sex,
+    dob,
+    resCountyName,
+    zipCode,
+    DateOfService,
+    svccode,
+    Code_Description,
+    ProviderName,
+    ProviderType,
+    Placesvc,
+    units,
+    PrimaryDiagnosis,
+    DiagnosisGroupRange,
+    Diagnosis_Group,
+    isVBPQR,
+    Measure,
+    Gap.Status
+  )
+
+write.csv(PFroSummary, "./data/PFroSummary.csv")
+
+
+```
