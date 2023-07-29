@@ -1,6 +1,6 @@
 ---
 title: "Peer and Family Run Organizational Activity in Northern Arizona"
-author: "John Ryan Kivela, MA"
+author: 
   name: "John Ryan Kivela, MA"
   email: "Ryan.Kivela@narbha.org"
 date: today
@@ -17,7 +17,7 @@ format:
 
 ```{r}
 #| label: Setup
-#| include: false
+#| include: true
 #| echo: false
 #| warning: false
 #| error: false
@@ -26,6 +26,7 @@ format:
 library(tidyverse)
 library(readxl)
 library(reprex)
+library(viridis)
 
 # table for inline code
 InLineCode <- data.frame(
@@ -53,8 +54,8 @@ First we extracted all claims for the 2022 VBP Measurement Year (1/1/2022-12/31/
 ```{sql}
 
 #| label: BH Claims Pull
-#| eval: false
-#| include: true
+#| eval: F
+#| include: false
 #| echo: true
 #| warning: false
 #| error: false
@@ -133,12 +134,30 @@ AND CASE WHEN v.Code IS NOT NULL THEN 'True' ELSE 'False' END = 'True'
 AND shcavos.EncounterStatus = 'AP';
 ```
 
+Then we load up the PFro BH Claims and adjust some column names
+
+```{r}
+#| label: Load PFro Claims
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+PFroBHClaims <- read_xlsx ("./data/BHClaims.xlsx", sheet = "Sheet1")
+
+# Rename the column
+colnames(PFroBHClaims)[colnames(PFroBHClaims) == "begDate"] <- "DateOfService"
+colnames(PFroBHClaims)[colnames(PFroBHClaims) == "calcnetpd"] <- "AmountPd"
+
+```
+
 Then we extracted the current member roster from BCBSAZ Health Choice data warehouse
 
 ```{sql}
 #| label: Member Roster Pull
 #| eval: false
-#| include: true
+#| include: false
 #| echo: true
 #| warning: false
 #| error: false
@@ -169,25 +188,7 @@ WHERE
 dm.LineOfBusiness = 'ArizonaACC'
 ```
 
-
-
-```{r}
-#| label: Load PFro Claims
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-PFroBHClaims <- read_xlsx ("./data/BHClaims.xlsx", sheet = "Sheet1")
-
-# Rename the column
-colnames(PFroBHClaims)[colnames(PFroBHClaims) == "begDate"] <- "DateOfService"
-colnames(PFroBHClaims)[colnames(PFroBHClaims) == "calcnetpd"] <- "AmountPd"
-
-```
-
-Then we connected enrollment data to the claims.
+Then we load up the Global Members Roster and filter it down to Alliance members only by filtering for residential addresses in the northern 5 counties, and auto-assignments to Alliance Providers.
 
 ```{r}
 #| label: Load Global Members Roster
@@ -212,6 +213,7 @@ NAZMmbrshp <- GlblMmbrshp |>
 
 ```
 
+Then we merge the Global Membership Roster with the PFro BH Claims records, attaching each CH claim to its respective member roster information.
 
 ```{r}
 #| label: Merge Enrollment
@@ -232,47 +234,7 @@ PFroActivity <- merge(x = NAZMmbrshp,
 
 ```
 
-Then we bring in the VBP Quality Roster to identify members who have also been counted
-
-```{r}
-#| label: Load VBP data
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-VBPQR <- read.csv("./data/VBPQR_AllAPsCombined_Cleaned_complete_2023-07-21.csv")
-
-# Rename the column 
-colnames(VBPQR)[colnames(VBPQR) == "Member.ID"] <- "MemberID"
-
-```
-
-Now append each record with possible VBP tokens
-
-```{r}
-#| label: Append VBP data to table
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-# Perform a left join to add "VBPQR$Measure" and "VBPQR$Gap.Status" to PFroActivity
-PFroActivity <- merge(x = PFroActivity,
-                      y = VBPQR[, c("MemberID", "Measure", "Gap.Status")],
-                      by.x = "MemberID",
-                      by.y = "MemberID",
-                      all.x = TRUE)
-
-# Add the "isVBPQR" column based on matching MemberID
-PFroActivity$isVBPQR <- ifelse(!is.na(PFroActivity$Measure), "VBP", "NoVBP")
-
-```
-
-
-Now append the description words for the svccodes
+Now append the B2 Matrix description words for the svccodes
 
 ```{r}
 #| label: Append B2 Matrix data to table
@@ -295,7 +257,7 @@ PFroActivity <- merge(x = PFroActivity,
 
 ```
 
-Now add in differentiators for diagnostic group range
+Now add in differentiators for diagnostic group ranges
 
 ```{r}
 #| label: Append Dx Group Range to table
@@ -316,7 +278,91 @@ PFroActivity <- merge(x = PFroActivity,
                       all.x = TRUE)
 ```
 
-Start to dial the data set in to specificy Alliance members using GSA
+Then we load up the VBP Quality Roster from the VBP Validation Model for FUH to identify members who have also been counted as a part of VBP measures according to the HEalth Choice VBP Quality Roster.
+
+```{r}
+#| label: Load VBP data
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+VBPQR <- read.csv("./data/VBPQR_AllAPsCombined_Cleaned_complete_2023-07-21.csv")
+
+# Rename the column 
+colnames(VBPQR)[colnames(VBPQR) == "Member.ID"] <- "MemberID"
+
+```
+
+Now we add additional columns to indicate any cases that have been identified by the VBP roster per VBP measure, what the measure is, and its gap status per the HC VBPQR.
+
+```{r}
+#| label: Append VBP data to table
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+# First AMM
+
+# Create the new columns "isVBP_AMM" and "GapStatus_AMM" with default values
+PFroActivity$isVBP_AMM <- NA
+PFroActivity$GapStatus_AMM <- NA
+
+# Check for matching MemberID and specific Measure, then assign values to the new columns
+PFroActivity$isVBP_AMM <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & 
+                                 VBPQR$Measure == "AMM - Antidepressant Medication Management - Effective Acute Phase Treatment – Total",
+                                 "AMM", PFroActivity$isVBP_AMM)
+
+PFroActivity$GapStatus_AMM <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & 
+                                     VBPQR$Measure == "AMM - Antidepressant Medication Management - Effective Acute Phase Treatment – Total",
+                                     VBPQR$Gap.Status, PFroActivity$GapStatus_AMM)
+
+# Then FUH
+
+# Create the new columns "isVBP_AMM" and "GapStatus_AMM" with default values
+PFroActivity$isVBP_FUH <- NA
+PFroActivity$GapStatus_FUH <- NA
+
+# Check for matching MemberID and specific Measure, then assign values to the new columns
+PFroActivity$isVBP_FUH <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & 
+                                 VBPQR$Measure == "FUH - Follow-Up after Hospitalization for Mental Illness: 7 Day",
+                                 "FUH", PFroActivity$isVBP_FUH)
+
+PFroActivity$GapStatus_FUH <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & 
+                                     VBPQR$Measure == "FUH - Follow-Up after Hospitalization for Mental Illness: 7 Day",
+                                     VBPQR$Gap.Status, PFroActivity$GapStatus_FUH)
+
+# Then HDO
+
+# Create the new columns "isVBP_AMM" and "GapStatus_AMM" with default values
+PFroActivity$isVBP_HDO <- NA
+PFroActivity$GapStatus_HDO <- NA
+
+# Check for matching MemberID and specific Measure, then assign values to the new columns
+PFroActivity$isVBP_HDO <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & 
+                                 VBPQR$Measure == "HDO - Use of Opioids at High Dosage",
+                                 "HDO", PFroActivity$isVBP_HDO)
+
+PFroActivity$GapStatus_HDO <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & 
+                                     VBPQR$Measure == "HDO - Use of Opioids at High Dosage",
+                                     VBPQR$Gap.Status, PFroActivity$GapStatus_HDO)
+
+# Create the new column "isVBP" with default value "NotVBP"
+PFroActivity$isVBP <- "NotVBP"
+
+# Check if any of the isVBP_AMM, isVBP_FUH, or isVBP_HDO columns are not NA
+# If any of them is not NA, assign "isVBP" to the "isVBP" column
+PFroActivity$isVBP <- ifelse(!is.na(PFroActivity$isVBP_AMM) |
+                              !is.na(PFroActivity$isVBP_FUH) |
+                              !is.na(PFroActivity$isVBP_HDO),
+                              "isVBP", PFroActivity$isVBP)
+
+```
+
+Start to dial the data set in to make it more usable
 
 ```{r}
 #| label: DIal in the data set
@@ -325,9 +371,6 @@ Start to dial the data set in to specificy Alliance members using GSA
 #| echo: true
 #| warning: false
 #| error: false
-
-# Filter MemberACCGSA to only include "North" values
-PFroActivity <- PFroActivity[PFroActivity$MemberACCGSA == "North", ]
 
 # Now select the key variables for analysis
 PFroSummary <- PFroActivity |> 
@@ -351,14 +394,106 @@ PFroSummary <- PFroActivity |>
     units,
     AmountPd,
     PrimaryDiagnosis,
+    ICD10_Description,
     DiagnosisGroupRange,
     Diagnosis_Group,
-    isVBPQR,
-    Measure,
-    Gap.Status
+    isVBP,
+    isVBP_AMM,
+    GapStatus_AMM,
+    isVBP_FUH,
+    GapStatus_FUH,
+    isVBP_HDO,
+    GapStatus_HDO
   )
 
 write.csv(PFroSummary, "./data/output/PFroSummary.csv")
+
+```
+
+Let's create some visualizations
+
+```{r}
+# Calculate the count of svccode by ProviderName
+provider_svccode_counts <- PFroSummary %>%
+  count(ProviderName, svccode)
+
+# Calculate the grand total count of svccode
+grand_total <- sum(provider_svccode_counts$n)
+
+# Calculate the percentage of count for each svccode by ProviderName
+provider_svccode_counts <- provider_svccode_counts %>%
+  group_by(ProviderName) %>%
+  mutate(Percentage = (n / grand_total) * 100)
+
+# Filter to keep only svccodes accounting for at least 1% of the grand total
+provider_svccode_counts_filtered <- provider_svccode_counts %>%
+  filter(Percentage >= 1)
+
+# Create the custom color palette with dark red, orange, dark green, and navy
+custom_colors <- c("#8B0000", "#FFA500", "#006400", "#000080")
+
+# Create the chart with svccode on the y-axis and the count as a percentage of the grand total on the x-axis, clustered by ProviderName with custom colors
+ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = svccode, fill = ProviderName)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Count of svccode as Percentage of Grand Total (Clustered by ProviderName)",
+       x = "Percentage", y = "svccode") +
+  theme_minimal() +
+  scale_x_continuous(labels = scales::percent_format(scale = 1)) +
+  scale_fill_manual(values = custom_colors)
+
+
+```
+
+And now a table for that
+
+```{r}
+# Load the required libraries
+library(dplyr)
+library(knitr)
+
+# Calculate the count of Code_Description by ProviderName and svccode
+code_prov_counts <- PFroSummary %>%
+  group_by(Code_Description, ProviderName, svccode) %>%
+  tally() %>%
+  ungroup()
+
+# Calculate the total count of Code_Description
+total_count <- sum(code_prov_counts$n)
+
+# Calculate the percentage of count for each Code_Description
+code_prov_counts <- code_prov_counts %>%
+  group_by(Code_Description) %>%
+  mutate(Percentage_of_Grand_Total = (n / total_count) * 100)
+
+# Filter to keep only Code_Description rows representing at least 1% of the grand total
+code_prov_counts_filtered <- code_prov_counts %>%
+  filter(Percentage_of_Grand_Total >= 1)
+
+# Reorder the columns to have ProviderName first, followed by svccode
+code_prov_counts_filtered <- code_prov_counts_filtered %>%
+  select(ProviderName, svccode, Code_Description, Percentage_of_Grand_Total)
+
+# Sort the table by ProviderName in ascending order
+code_prov_counts_filtered <- code_prov_counts_filtered %>%
+  arrange(ProviderName)
+
+# Summarize the AmountPd column to get the sum of Amount Paid for each Code_Description by ProviderName
+amount_paid_sum <- PFroSummary %>%
+  filter(Code_Description %in% code_prov_counts_filtered$Code_Description) %>%
+  group_by(Code_Description, ProviderName) %>%
+  summarise(Sum_AmountPd = sum(AmountPd))
+
+# Join the summarized Amount Paid data with the filtered table
+code_prov_counts_filtered <- left_join(code_prov_counts_filtered, amount_paid_sum, by = c("Code_Description", "ProviderName"))
+
+# Format the Percentage_of_Grand_Total column with two decimal places and a "%" symbol
+code_prov_counts_filtered$Percentage_of_Grand_Total <- sprintf("%.2f%%", code_prov_counts_filtered$Percentage_of_Grand_Total)
+
+# Format the Sum_AmountPd column with a "$" sign and no decimal places
+code_prov_counts_filtered$Sum_AmountPd <- paste0("$", round(code_prov_counts_filtered$Sum_AmountPd, 0))
+
+# Display the table using kable
+kable(code_prov_counts_filtered, format = "html", caption = "Summary of Code_Description by ProviderName")
 
 
 ```
