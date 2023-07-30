@@ -3,6 +3,7 @@ title: "Peer and Family Run Organizational Activity in Northern Arizona"
 author: 
   name: "John Ryan Kivela, MA"
   email: "Ryan.Kivela@narbha.org"
+  affiliation: "The Alliance ACO"
 date: today
 date-format: long
 format:
@@ -26,7 +27,7 @@ format:
 library(tidyverse)
 library(readxl)
 library(reprex)
-library(viridis)
+
 
 # table for inline code
 InLineCode <- data.frame(
@@ -52,10 +53,9 @@ The Alliance is researching the prevalence and impact of Peer and Family Run Org
 First we extracted all claims for the 2022 VBP Measurement Year (1/1/2022-12/31/2022) from the BCBSAZ-Health Choice data warehouse.
 
 ```{sql}
-
 #| label: BH Claims Pull
-#| eval: F
-#| include: false
+#| eval: false
+#| include: true
 #| echo: true
 #| warning: false
 #| error: false
@@ -131,7 +131,7 @@ LEFT JOIN #ValueSetListMy2023 AS v ON shcavos.RenderingProviderNpi COLLATE SQL_L
                                     OR shcavos.Dx12 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
 WHERE shcavos.begDate BETWEEN @start AND @end
 AND CASE WHEN v.Code IS NOT NULL THEN 'True' ELSE 'False' END = 'True'
-AND shcavos.EncounterStatus = 'AP';
+AND shcavos.EncounterStatus = 'AP'
 ```
 
 Then we load up the PFro BH Claims and adjust some column names
@@ -157,7 +157,7 @@ Then we extracted the current member roster from BCBSAZ Health Choice data wareh
 ```{sql}
 #| label: Member Roster Pull
 #| eval: false
-#| include: false
+#| include: true
 #| echo: true
 #| warning: false
 #| error: false
@@ -413,6 +413,14 @@ write.csv(PFroSummary, "./data/output/PFroSummary.csv")
 Let's create some visualizations
 
 ```{r}
+#| label: First Plot
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+
 # Calculate the count of svccode by ProviderName
 provider_svccode_counts <- PFroSummary %>%
   count(ProviderName, svccode)
@@ -447,6 +455,14 @@ ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = svccode, fill =
 And now a table for that
 
 ```{r}
+#| label: First Table
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+
 # Load the required libraries
 library(dplyr)
 library(knitr)
@@ -495,5 +511,172 @@ code_prov_counts_filtered$Sum_AmountPd <- paste0("$", round(code_prov_counts_fil
 # Display the table using kable
 kable(code_prov_counts_filtered, format = "html", caption = "Summary of Code_Description by ProviderName")
 
+
+```
+
+```{r}
+#| label: Distinct Members
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+# Assuming PFroSummary is your data frame
+
+# Calculate the count of distinct MemberID for each ProviderName and isVBP combination
+stacked_data <- PFroSummary %>%
+  group_by(ProviderName, isVBP) %>%
+  summarise(count = n_distinct(MemberID))
+
+# Create the stacked bar chart with x and y-axis flipped
+ggplot(stacked_data, aes(x = count, y = ProviderName, fill = isVBP)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Stacked Bar Chart of Count of Distinct MemberID vs. ProviderName",
+       x = "Count of Distinct MemberID",
+       y = "ProviderName",
+       fill = "isVBP") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(hjust = 0))  # Adjust the position of y-axis labels
+  coord_flip()
+```
+
+```{r}
+#| label: Second Table
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+library(dplyr)
+
+# Filter out rows where svccode is "T1016"
+PFroSummary_filtered <- PFroSummary %>%
+  filter(svccode != "T1016")
+
+# Calculate the count of distinct MemberID for each ProviderName and isVBP combination
+summary_table <- PFroSummary_filtered %>%
+  group_by(ProviderName, isVBP) %>%
+  summarise(Count_of_Distinct_MemberID = n_distinct(MemberID)) %>%
+  ungroup() %>%
+  group_by(ProviderName) %>%
+  mutate(Total_by_Provider = sum(Count_of_Distinct_MemberID),
+         `Percent of Total per Provider` = (Count_of_Distinct_MemberID / Total_by_Provider) * 100) %>%
+  select(-Total_by_Provider) # Remove the intermediate column
+
+# Format the "Percent of Total per Provider" column to have 2 decimal places
+summary_table$`Percent of Total per Provider` <- sprintf("%.2f%%", summary_table$`Percent of Total per Provider`)
+
+# Calculate the grand total
+grand_total <- n_distinct(PFroSummary_filtered$MemberID)
+
+# Calculate the percent of grand total for each ProviderName
+summary_table$`Percent of Grand Total` <- sprintf("%.2f%%", (summary_table$Count_of_Distinct_MemberID / grand_total) * 100)
+
+# Create the footnote
+footnote_text <- "Case Management Services (T1016) have been removed"
+
+# Print the summary table
+print(summary_table)
+
+# Print the footnote
+cat("\nFootnote:", footnote_text)
+
+
+```
+
+```{r}
+#| label: County
+#| eval: false
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+library(ggplot2)
+library(dplyr)
+
+# Filter out rows where svccode is "T1016"
+PFroSummary_filtered <- PFroSummary %>%
+  filter(svccode != "T1016")
+
+# Create a summary table by resCountyName and ProviderName
+summary_table <- PFroSummary_filtered %>%
+  group_by(resCountyName, ProviderName) %>%
+  summarise(Count_of_Distinct_MemberID = n_distinct(MemberID)) %>%
+  ungroup()
+
+# Sort the resCountyName based on the count of MemberIDs in descending order
+summary_table <- summary_table %>%
+  arrange(resCountyName, desc(Count_of_Distinct_MemberID))
+
+# Create the stacked bar chart with flipped axes and sorted bars
+p <- ggplot(data = summary_table, aes(x = fct_reorder(resCountyName, Count_of_Distinct_MemberID, .fun = sum), y = Count_of_Distinct_MemberID, fill = ProviderName)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Number of MemberIDs by County and Provider (Excluding T1016)",
+       x = "County",
+       y = "Number of MemberIDs") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill = guide_legend(title = "Provider Name")) +
+  coord_flip()
+
+# Add the footnote
+p <- p +
+  annotate("text", x = Inf, y = Inf, hjust = 1, vjust = 1, 
+           label = "T1016 removed", color = "red", size = 3)
+
+# Print the plot
+print(p)
+
+```
+
+Make a choropleth map
+
+```{r}
+#| label: Map
+#| eval: false
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+
+# Load the zip code data for mapping
+# Replace "path_to_zip_code_data" with the actual path to your zip code data file
+# The file should contain columns "region" (zip code) and "subregion" (name of the area)
+zip_codes_data <- read.csv("./data/data_reference_zip_code_database.csv")
+
+# Calculate the count of occurrences for each zip code in PFroSummary data
+zip_counts <- PFroSummary %>%
+  group_by(zipCode) %>%
+  tally()
+
+# Load the zip code data for Arizona
+arizona_zip_codes_data <- zip_codes_data %>%
+  filter(state == "AZ")
+
+# Rename the "zipCode" column in zip_counts to "region" for consistency
+zip_counts <- zip_counts %>%
+  rename(region = zipCode)
+
+# Rename the "zip" column in arizona zip coes data to "region" for consistency
+arizona_zip_codes_data <- arizona_zip_codes_data %>%
+  rename(region = zip)
+
+# Merge the zip code data for Arizona with the counts
+merged_data <- merge(arizona_zip_codes_data, zip_counts, by = "region", all.x = TRUE)
+
+# Create the choropleth map
+ggplot(merged_data, aes(x = longitude, y = latitude, group = "region", fill = n)) +
+  geom_polygon(color = "blue", size = 0.2) +
+  coord_fixed() +
+  labs(title = "Choropleth Map of Zip Code Counts in Arizona",
+       subtitle = "Counts of occurrences for each zip code",
+       fill = "n") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  scale_fill_viridis_c()
 
 ```

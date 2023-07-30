@@ -1,0 +1,13 @@
+---
+title: "Scratch Paper"
+author: "John Ryan Kivela, MA"
+format: html
+editor: visual
+---
+
+> names(PFroSummary)
+ [1] "MemberID"            "AHCCCSID"            "primaryId"           "ra"                  "lastName"            "firstName"          
+ [7] "sex"                 "dob"                 "resCountyName"       "zipCode"             "DateOfService"       "svccode"            
+[13] "Code_Description"    "ProviderName"        "ProviderType"        "Placesvc"            "units"               "AmountPd"           
+[19] "PrimaryDiagnosis"    "ICD10_Description"   "DiagnosisGroupRange" "Diagnosis_Group"     "isVBP"               "isVBP_AMM"          
+[25] "GapStatus_AMM"       "isVBP_FUH"           "GapStatus_FUH"       "isVBP_HDO"           "GapStatus_HDO"
