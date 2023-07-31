@@ -18,11 +18,7 @@ format:
 
 ```{r}
 #| label: Setup
-<<<<<<< HEAD
 #| include: true
-=======
-#| include: false
->>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 #| echo: false
 #| warning: false
 #| error: false
@@ -31,41 +27,39 @@ format:
 library(tidyverse)
 library(readxl)
 library(reprex)
-<<<<<<< HEAD
 library(knitr)
 library(kableExtra)
-
-=======
->>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 
 # table for inline code
 InLineCode <- data.frame(
   Test = "test"
   )
 
-data("county.map")
-
 AZ_County_Map <- (c("Apache", "Coconino", "Mohave", "Navajo", "Yavapai"))
 Provider_ShortName <- (c("CBI", "CPIH", "EHS", "LCBHC", "MMHC", "SHG", "SBH", "TGC", "WYGC"))
+
+data("county.map")
 ```
 
 # Introduction
 
-The Alliance is researching the prevalence and impact of Peer and Family Run Organizations (PFros) on members of the alliance. 
-
-# Things we looked at
--   A
--   B
+The Alliance is researching the prevalence and impact of Peer and Family Run Organizations (PFros) on members of the alliance. The results of this research will drive future decision making as we incorporate Peer and Family Run Organizations (PFro) into the Alliance ACO. 
 
 # Method
 
-First we extracted all claims for the 2022 VBP Measurement Year (1/1/2022-12/31/2022) from the BCBSAZ-Health Choice data warehouse.
+Basic strategy
+
+Key Indicators
+
+Things we looked at
+-   A
+-   B
+
+# Data Preparation
+
+First we extracted all claims for the 2022 VBP Measurement Year (1/1/2022-12/31/2022) from the BCBSAZ-Health Choice data warehouse that were delivered by key PFros in the Health Choice network.This data was extracted on 7/27/23.
 
 ```{sql}
-<<<<<<< HEAD
-=======
-
->>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 #| label: BH Claims Pull
 #| eval: false
 #| include: true
@@ -144,11 +138,8 @@ LEFT JOIN #ValueSetListMy2023 AS v ON shcavos.RenderingProviderNpi COLLATE SQL_L
                                     OR shcavos.Dx12 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
 WHERE shcavos.begDate BETWEEN @start AND @end
 AND CASE WHEN v.Code IS NOT NULL THEN 'True' ELSE 'False' END = 'True'
-<<<<<<< HEAD
 AND shcavos.EncounterStatus = 'AP'
 ```
-
-Then we load up the PFro BH Claims and adjust some column names
 
 ```{r}
 #| label: Load PFro Claims
@@ -158,18 +149,16 @@ Then we load up the PFro BH Claims and adjust some column names
 #| warning: false
 #| error: false
 
+# Load the claims pull from HCA warehouse
 PFroBHClaims <- read_xlsx ("./data/BHClaims.xlsx", sheet = "Sheet1")
 
 # Rename the column
 colnames(PFroBHClaims)[colnames(PFroBHClaims) == "begDate"] <- "DateOfService"
 colnames(PFroBHClaims)[colnames(PFroBHClaims) == "calcnetpd"] <- "AmountPd"
 
-=======
-AND shcavos.EncounterStatus = 'AP';
->>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 ```
 
-Then we extracted the current member roster from BCBSAZ Health Choice data warehouse
+Then we extracted the current member roster from BCBSAZ Health Choice data warehouse. This roster was pulled on 7/21/23. This original roster includes all HCA members in the Arizona ACC health plan.
 
 ```{sql}
 #| label: Member Roster Pull
@@ -205,28 +194,7 @@ WHERE
 dm.LineOfBusiness = 'ArizonaACC'
 ```
 
-<<<<<<< HEAD
-Then we load up the Global Members Roster and filter it down to Alliance members only by filtering for residential addresses in the northern 5 counties, and auto-assignments to Alliance Providers.
-=======
-
-
-```{r}
-#| label: Load PFro Claims
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-PFroBHClaims <- read_xlsx ("./data/BHClaims.xlsx", sheet = "Sheet1")
-
-# Rename the column
-colnames(PFroBHClaims)[colnames(PFroBHClaims) == "begDate"] <- "DateOfService"
-
-```
-
-Then we connected enrollment data to the claims.
->>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
+Then the Global Members Roster is filtered down to Alliance members only by filtering for residential addresses in the northern 5 counties, and auto-assignments to Alliance Providers.
 
 ```{r}
 #| label: Load Global Members Roster
@@ -251,10 +219,7 @@ NAZMmbrshp <- GlblMmbrshp |>
 
 ```
 
-<<<<<<< HEAD
-Then we merge the Global Membership Roster with the PFro BH Claims records, attaching each CH claim to its respective member roster information.
-=======
->>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
+Then we merge the Global Membership Roster with the PFro BH Claims records, attaching each BH claim to its respective member information.
 
 ```{r}
 #| label: Merge Enrollment
@@ -275,51 +240,7 @@ PFroActivity <- merge(x = NAZMmbrshp,
 
 ```
 
-<<<<<<< HEAD
-Now append the B2 Matrix description words for the svccodes
-=======
-Then we bring in the VBP Quality Roster to identify members who have also been counted
-
-```{r}
-#| label: Load VBP data
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-VBPQR <- read.csv("./data/VBPQR_AllAPsCombined_Cleaned_complete_2023-07-21.csv")
-
-# Rename the column 
-colnames(VBPQR)[colnames(VBPQR) == "Member.ID"] <- "MemberID"
-
-```
-
-Now append each record with possible VBP tokens
-
-```{r}
-#| label: Append VBP data to table
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-# Perform a left join to add "VBPQR$Measure" and "VBPQR$Gap.Status" to PFroActivity
-PFroActivity <- merge(x = PFroActivity,
-                      y = VBPQR[, c("MemberID", "Measure", "Gap.Status")],
-                      by.x = "MemberID",
-                      by.y = "MemberID",
-                      all.x = TRUE)
-
-# Add the "isVBPQR" column based on matching MemberID
-PFroActivity$isVBPQR <- ifelse(!is.na(PFroActivity$Measure), "VBP", "NoVBP")
-
-```
-
-
-Now append the description words for the svccodes
->>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
+Now append the B2 Matrix description words for the svccodes, just to make it more easily readable.
 
 ```{r}
 #| label: Append B2 Matrix data to table
@@ -342,11 +263,7 @@ PFroActivity <- merge(x = PFroActivity,
 
 ```
 
-<<<<<<< HEAD
-Now add in differentiators for diagnostic group ranges
-=======
-Now add in differentiators for diagnostic group range
->>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
+Now add in indicators for ICD 10 diagnostic group ranges.
 
 ```{r}
 #| label: Append Dx Group Range to table
@@ -358,17 +275,18 @@ Now add in differentiators for diagnostic group range
 
 ICD10DxAndGroupsCombined <- read_csv("./data/ICD10andBHGroupingsCombined.csv")
 
-# Rename the column 
+# Rename the column
+
 colnames(ICD10DxAndGroupsCombined)[colnames(ICD10DxAndGroupsCombined) == "primaryDiagnosis"] <- "PrimaryDiagnosis"
 
 PFroActivity <- merge(x = PFroActivity,
                       y = ICD10DxAndGroupsCombined,
                       by = "PrimaryDiagnosis",
                       all.x = TRUE)
+
 ```
 
-<<<<<<< HEAD
-Then we load up the VBP Quality Roster from the VBP Validation Model for FUH to identify members who have also been counted as a part of VBP measures according to the HEalth Choice VBP Quality Roster.
+Then import the aggregated HCA VBP Quality Roster. This allows us to identify those members who have been served by a PFro, who have also been deemed eligible for a VBP measure. This is taken from the 7/21/23 report. 
 
 ```{r}
 #| label: Load VBP data
@@ -385,7 +303,7 @@ colnames(VBPQR)[colnames(VBPQR) == "Member.ID"] <- "MemberID"
 
 ```
 
-Now we add additional columns to indicate any cases that have been identified by the VBP roster per VBP measure, what the measure is, and its gap status per the HC VBPQR.
+Now we add additional columns to indicate any cases that have been identified by the VBP roster. We record the name of the VBP measure and its gap status per the HC VBPQR.
 
 ```{r}
 #| label: Append VBP data to table
@@ -452,7 +370,7 @@ PFroActivity$isVBP <- ifelse(!is.na(PFroActivity$isVBP_AMM) |
 
 ```
 
-Next we check to see if any of the people identified so far had an eligible FUH7 inpatient claim. 
+Next we use the FUH7 Validation (Inpatient Claims) data to check if any of the people identified so far had an eligible FUH7 inpatient claim according to HCA clams that have been approved and paid. The FUH7 data is for claims that were authorized and paid for the measurement year 2023-01-01 to 2023-12-31.
 
 ```{r}
 #| label: Add inpatient indicator
@@ -474,7 +392,7 @@ PFroActivity <- PFroActivity %>%
 
 ```
 
-Now append an indicator for any antidepressant medication. This data is not for the same time period (yet). I borrowed it from the AMM model on a whim.
+Next we use the AMM Validation (PBM Claims) data to check if any of the people identified so far had an eligible AMM pharmacy claim according to HCA claims that have been approved and paid. The FUH7 data is for claims that were authorized and paid for the measurement year Intake Period 2021-05-01 to 2022-04-30.
 
 ```{r}
 #| label: Add antidepressant med indicator
@@ -484,7 +402,7 @@ Now append an indicator for any antidepressant medication. This data is not for 
 #| warning: false
 #| error: false
 
-PBMClaims <- read.csv("./data/DataRaw_PBMClaims_2023-05-31.csv")
+PBMClaims <- read_xlsx("./data/DataRaw_PBMClaims_2022-04-30.xlsx", sheet = "Sheet1")
 
 # Rename the column 
 colnames(PBMClaims)[colnames(PBMClaims) == "PrimaryId"] <- "primaryId"
@@ -496,10 +414,7 @@ PFroActivity <- PFroActivity %>%
   )
 ```
 
-Start to dial the data set in to make it more usable
-=======
-Start to dial the data set in to specificy Alliance members using GSA
->>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
+Finally, we select desired variables from this monster table into the final dataset, called PFroSummary. We also create a separate version with less variables, but filtered for only distinct MemberIDs by provider. 
 
 ```{r}
 #| label: DIal in the data set
@@ -509,12 +424,9 @@ Start to dial the data set in to specificy Alliance members using GSA
 #| warning: false
 #| error: false
 
-<<<<<<< HEAD
-=======
 # Filter MemberACCGSA to only include "North" values
 PFroActivity <- PFroActivity[PFroActivity$MemberACCGSA == "North", ]
 
->>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 # Now select the key variables for analysis
 PFroSummary <- PFroActivity |> 
   select(
@@ -535,7 +447,6 @@ PFroSummary <- PFroActivity |>
     ProviderType,
     Placesvc,
     units,
-<<<<<<< HEAD
     AmountPd,
     PrimaryDiagnosis,
     ICD10_Description,
@@ -552,11 +463,58 @@ PFroSummary <- PFroActivity |>
     isADMed
   )
 
+# Write to CSV
 write.csv(PFroSummary, "./data/output/PFroSummary.csv")
 
 ```
 
-Let's create some visualizations
+```{r}
+#| label: Create unduplicated roster by provider
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+# New version copied from PFroSummary
+PFroSummary_Distinct_byProvider <- PFroActivity |> 
+  select(
+    MemberID,
+    AHCCCSID,
+    primaryId,
+    ra,
+    lastName,
+    firstName,
+    sex,
+    dob,
+    resCountyName,
+    zipCode,
+    ProviderName,
+    isVBP,
+    isVBP_AMM,
+    GapStatus_AMM,
+    isVBP_FUH,
+    GapStatus_FUH,
+    isVBP_HDO,
+    GapStatus_HDO,
+    isIP,
+    isADMed
+  )
+
+# Filter for distinct MEmberID
+PFroSummary_Distinct_byProvider <- PFroSummary_Distinct_byProvider %>%
+  distinct(MemberID, .keep_all = TRUE)
+
+# Write to CSV
+write.csv(PFroSummary_Distinct_byProvider, "./data/output/PFroSummary_Distinct_byProvider.csv")
+
+```
+
+# Analysis
+
+## Figure 1: PFro Services by Provider
+
+The first view of this data is a visualization of the percent of total services delivered to HC members by each PFro. THis was filtered to only include service codes that accounted for at least 1% of the total.
 
 ```{r}
 #| label: First Plot
@@ -589,8 +547,10 @@ custom_colors <- c("#8B0000", "#FFA500", "#006400", "#000080")
 # Create the chart with svccode on the y-axis and the count as a percentage of the grand total on the x-axis, clustered by ProviderName with custom colors
 ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = svccode, fill = ProviderName)) +
   geom_bar(stat = "identity", position = "dodge") +
-  labs(title = "Count of svccode as Percentage of Grand Total (Clustered by ProviderName)",
-       x = "Percentage", y = "svccode") +
+  labs(title = "PFro Services by Provider",
+       subtitle = "As percent of grand total",
+       x = "Percentage", 
+       y = "svccode") +
   theme_minimal() +
   scale_x_continuous(labels = scales::percent_format(scale = 1)) +
   scale_fill_manual(values = custom_colors)
@@ -598,7 +558,9 @@ ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = svccode, fill =
 
 ```
 
-And now a table for that
+## Table 1: PFro Services by Provider
+
+The first table is a summary of the services provided, and the amount that was paid to the provider.
 
 ```{r}
 #| label: First Table
@@ -650,12 +612,56 @@ code_prov_counts_filtered$Percentage_of_Grand_Total <- sprintf("%.2f%%", code_pr
 code_prov_counts_filtered$Sum_AmountPd <- paste0("$", round(code_prov_counts_filtered$Sum_AmountPd, 0))
 
 # Display the table using kable
-kable(code_prov_counts_filtered, format = "html", caption = "Summary of Code_Description by ProviderName")
+kable(code_prov_counts_filtered, format = "html", caption = "Summary of Services by ProviderName")
 
 
 ```
 
-Services to distinct members by provider. T1016 removed.
+## Figure 2 (beta)
+```{r}
+#| label: First Plot (beta)
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+
+# Calculate the count of svccode by ProviderName
+sum_by_provider <- PFroSummary %>%
+  group_by(ProviderName, svccode) %>%
+  summarise(Total_AmountPd = sum(AmountPd))
+
+# Calculate the grand total count of svccode
+grand_total <- sum(sum_by_provider$Total_AmountPd)
+
+# Calculate the pTotal_AmountPdfor each svccode by ProviderName
+sum_by_provider <- sum_by_provider %>%
+  group_by(ProviderName) %>%
+  mutate(Percentage = (Total_AmountPd / grand_total) * 100)
+
+# Filter to keep only svccodes accounting for at least 1% of the grand total
+provider_svccode_counts_filtered <- sum_by_provider %>%
+  filter(Percentage >= 1)
+
+# Create the custom color palette with dark red, orange, dark green, and navy
+custom_colors <- c("#8B0000", "#FFA500", "#006400", "#000080", "purple")
+
+# Create the chart with svccode on the y-axis and the count as a percentage of the grand total on the x-axis, clustered by ProviderName with custom colors
+ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = svccode, fill = ProviderName)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "PFro Services Paid by Provider",
+       subtitle = "As percent of grand total",
+       x = "Percentage", 
+       y = "svccode") +
+  theme_minimal() +
+  scale_x_continuous(labels = scales::percent_format(scale = 1)) +
+  scale_fill_manual(values = custom_colors)
+```
+
+## Figure 2
+
+The following figure assesses how many HCA members in services with a PFro have been deemed eligible for a VBP measure. For this assessment, T1016 (Case Management) was excluded.
 
 ```{r}
 #| label: Distinct Members
@@ -676,11 +682,11 @@ stacked_data <- PFroSummary %>%
 # Create the stacked bar chart with x and y-axis flipped
 ggplot(stacked_data, aes(x = count, y = ProviderName, fill = isVBP)) +
   geom_bar(stat = "identity") +
-  labs(title = "Stacked Bar Chart of Count of Distinct MemberID vs. ProviderName",
+  labs(title = "Current PFro Engagement with VBP Eligible Members",
        subtitle = "T1016 Removed",
        x = "Count of Distinct MemberID",
        y = "ProviderName",
-       fill = "isVBP") +
+       fill = "VBP Eligibility") +
   theme_minimal() +
   theme(axis.text.y = element_text(hjust = 0))  # Adjust the position of y-axis labels
 
@@ -807,7 +813,6 @@ ggplot(merged_data, aes(x = longitude, y = latitude, group = "region", fill = n)
   theme_minimal() +
   theme(legend.position = "bottom") +
   scale_fill_viridis_c()
-=======
     PrimaryDiagnosis,
     DiagnosisGroupRange,
     Diagnosis_Group,
@@ -818,6 +823,5 @@ ggplot(merged_data, aes(x = longitude, y = latitude, group = "region", fill = n)
 
 write.csv(PFroSummary, "./data/PFroSummary.csv")
 
->>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 
 ```

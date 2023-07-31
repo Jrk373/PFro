@@ -5,15 +5,76 @@ format: html
 editor: visual
 ---
 
-> names(PFroSummary)
- [1] "MemberID"            "AHCCCSID"            "primaryId"           "ra"                  "lastName"            "firstName"          
- [7] "sex"                 "dob"                 "resCountyName"       "zipCode"             "DateOfService"       "svccode"            
-[13] "Code_Description"    "ProviderName"        "ProviderType"        "Placesvc"            "units"               "AmountPd"           
-[19] "PrimaryDiagnosis"    "ICD10_Description"   "DiagnosisGroupRange" "Diagnosis_Group"     "isVBP"               "isVBP_AMM"          
-[25] "GapStatus_AMM"       "isVBP_FUH"           "GapStatus_FUH"       "isVBP_HDO"           "GapStatus_HDO"
+> names(PFroSummary) \[1\] "MemberID" "AHCCCSID" "primaryId" "ra" "lastName" "firstName"\
+> \[7\] "sex" "dob" "resCountyName" "zipCode" "DateOfService" "svccode"\
+> \[13\] "Code_Description" "ProviderName" "ProviderType" "Placesvc" "units" "AmountPd"\
+> \[19\] "PrimaryDiagnosis" "ICD10_Description" "DiagnosisGroupRange" "Diagnosis_Group" "isVBP" "isVBP_AMM"\
+> \[25\] "GapStatus_AMM" "isVBP_FUH" "GapStatus_FUH" "isVBP_HDO" "GapStatus_HDO"
 
-> names(zip_codes_data)
- [1] "zipCode"                  "type"                     "decommissioned"           "primary_city"            
- [5] "acceptable_cities"        "unacceptable_cities"      "state"                    "county"                  
- [9] "timezone"                 "area_codes"               "world_region"             "country"                 
-[13] "latitude"                 "longitude"                "irs_estimated_population"
+> names(zip_codes_data) \[1\] "zipCode" "type" "decommissioned" "primary_city"\
+> \[5\] "acceptable_cities" "unacceptable_cities" "state" "county"\
+> \[9\] "timezone" "area_codes" "world_region" "country"\
+> \[13\] "latitude" "longitude" "irs_estimated_population"
+
+Now append each record with possible VBP tokens
+
+Now add in differentiators for diagnostic group ranges
+
+```{r}
+
+#| label: Append Dx Group Range to table
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+ICD10DxAndGroupsCombined <- read_csv("./data/ICD10andBHGroupingsCombined.csv")
+
+# Rename the column
+
+colnames(ICD10DxAndGroupsCombined)[colnames(ICD10DxAndGroupsCombined) == "primaryDiagnosis"] <- "PrimaryDiagnosis"
+
+PFroActivity <- merge(x = PFroActivity,
+                      y = ICD10DxAndGroupsCombined,
+                      by = "PrimaryDiagnosis",
+                      all.x = TRUE)
+
+```
+
+Then we load up the VBP Quality Roster from the VBP Validation Model for FUH to identify members who have also been counted as a part of VBP measures according to the HEalth Choice VBP Quality Roster.
+
+```{r}
+#| label: Load VBP data
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+VBPQR <- read.csv("./data/VBPQR_AllAPsCombined_Cleaned_complete_2023-07-21.csv")
+
+# Rename the column
+
+colnames(VBPQR)[colnames(VBPQR) == "Member.ID"] <- "MemberID"
+
+```
+
+`kable_styling` is a function from the `kableExtra` package that allows you to apply various styling options to a `kable` table created with the `knitr` package. Here are some of the commonly used options:
+
+1. `bootstrap`: Applies Bootstrap styling to the table.
+2. `striped`: Adds alternating row colors (striped) to the table.
+3. `hover`: Adds hover effect to rows.
+4. `condensed`: Applies condensed styling to reduce row height.
+5. `bordered`: Adds borders to the table.
+6. `responsive`: Makes the table responsive for different screen sizes.
+7. `full_width`: Sets the table width to 100% of the container.
+8. `position`: Sets the table alignment (e.g., "left", "center", "right").
+9. `font_size`: Sets the font size for the table.
+10. `cell_borders`: Sets the borders for individual cells (e.g., "top", "bottom", "left", "right").
+11. `cell_spec`: Applies custom styling to specific cells based on row and column indices.
+12. `row_spec`: Applies custom styling to specific rows based on row indices.
+13. `column_spec`: Applies custom styling to specific columns based on column indices.
+14. `repeat_header`: Repeats the header row at the top of each printed page.
+
+These are just a few examples of the available styling options. You can combine multiple options to achieve the desired appearance for your `kable` table. For more details and advanced options, you can refer to the `kableExtra` package documentation and vignettes.
