@@ -29,10 +29,11 @@ library(readxl)
 library(reprex)
 library(knitr)
 library(kableExtra)
+library(scales)
 
 # table for inline code
 InLineCode <- data.frame(
-  Test = "test"
+  Member_Report_Date = "July 27, 2023"
   )
 
 AZ_County_Map <- (c("Apache", "Coconino", "Mohave", "Navajo", "Yavapai"))
@@ -57,7 +58,7 @@ Things we looked at
 
 # Data Preparation
 
-First we extracted all claims for the 2022 VBP Measurement Year (1/1/2022-12/31/2022) from the BCBSAZ-Health Choice data warehouse that were delivered by key PFros in the Health Choice network.This data was extracted on 7/27/23.
+First we extracted all behavioral health claims for the 2022 VBP Measurement Year (1/1/2022-12/31/2022) from the BCBSAZ-Health Choice data warehouse that were delivered by key PFros in the Health Choice network.This data was extracted on 7/27/23.
 
 ```{sql}
 #| label: BH Claims Pull
@@ -158,7 +159,7 @@ colnames(PFroBHClaims)[colnames(PFroBHClaims) == "calcnetpd"] <- "AmountPd"
 
 ```
 
-Then we extracted the current member roster from BCBSAZ Health Choice data warehouse. This roster was pulled on 7/21/23. This original roster includes all HCA members in the Arizona ACC health plan.
+Then we extracted the current Alliance ACO member roster from BCBSAZ Health Choice data warehouse. This roster was pulled on 7/21/23. This original roster includes all HCA members in the Arizona ACC health plan.
 
 ```{sql}
 #| label: Member Roster Pull
@@ -194,7 +195,7 @@ WHERE
 dm.LineOfBusiness = 'ArizonaACC'
 ```
 
-Then the Global Members Roster is filtered down to Alliance members only by filtering for residential addresses in the northern 5 counties, and auto-assignments to Alliance Providers.
+Then the Global Members Roster for the Alliance ACO is filtered down to Alliance members only by filtering for residential addresses in the northern 5 counties, and auto-assignments to Alliance Providers.
 
 ```{r}
 #| label: Load Global Members Roster
@@ -219,7 +220,7 @@ NAZMmbrshp <- GlblMmbrshp |>
 
 ```
 
-Then we merge the Global Membership Roster with the PFro BH Claims records, attaching each BH claim to its respective member information.
+Then we merge the Global Membership Roster with the PFro BH Claims records, attaching each behavioral health claim to its respective member information.
 
 ```{r}
 #| label: Merge Enrollment
@@ -240,7 +241,7 @@ PFroActivity <- merge(x = NAZMmbrshp,
 
 ```
 
-Now append the B2 Matrix description words for the svccodes, just to make it more easily readable.
+Now append the Behavioral Health Services Matrix description words for the service codes, just to make it more easily readable.
 
 ```{r}
 #| label: Append B2 Matrix data to table
@@ -286,7 +287,7 @@ PFroActivity <- merge(x = PFroActivity,
 
 ```
 
-Then import the aggregated HCA VBP Quality Roster. This allows us to identify those members who have been served by a PFro, who have also been deemed eligible for a VBP measure. This is taken from the 7/21/23 report. 
+Then import the aggregated Health Choice VBP Quality Roster. This allows us to identify those members who have been served by a PFro, who have also been deemed eligible for a VBP measure. This is taken from the 7/21/23 report. 
 
 ```{r}
 #| label: Load VBP data
@@ -370,7 +371,7 @@ PFroActivity$isVBP <- ifelse(!is.na(PFroActivity$isVBP_AMM) |
 
 ```
 
-Next we use the FUH7 Validation (Inpatient Claims) data to check if any of the people identified so far had an eligible FUH7 inpatient claim according to HCA clams that have been approved and paid. The FUH7 data is for claims that were authorized and paid for the measurement year 2023-01-01 to 2023-12-31.
+Next we use the FUH7 Validation (Inpatient Claims) data to check if any of the people identified so far had an eligible FUH7 inpatient claim according to HCA claims that have been approved and paid. The FUH7 data is for claims that were authorized and paid for the measurement year 2023-01-01 to 2023-12-31.
 
 ```{r}
 #| label: Add inpatient indicator
@@ -392,7 +393,7 @@ PFroActivity <- PFroActivity %>%
 
 ```
 
-Next we use the AMM Validation (PBM Claims) data to check if any of the people identified so far had an eligible AMM pharmacy claim according to HCA claims that have been approved and paid. The FUH7 data is for claims that were authorized and paid for the measurement year Intake Period 2021-05-01 to 2022-04-30.
+Next we use the AMM Validation (PBM Claims) data to check if any of the people identified so far had a potentially eligible AMM pharmacy claim according to HCA claims that have been approved and paid. The AMM data is for claims that were authorized and paid for the measurement year Intake Period 2021-05-01 to 2022-04-30.
 
 ```{r}
 #| label: Add antidepressant med indicator
@@ -504,6 +505,11 @@ PFroSummary_Distinct_byProvider <- PFroActivity |>
 # Filter for distinct MEmberID
 PFroSummary_Distinct_byProvider <- PFroSummary_Distinct_byProvider %>%
   distinct(MemberID, .keep_all = TRUE)
+
+# Assuming "dob" is in date format, if not convert it using as.Date() function
+PFroSummary_Distinct_byProvider <- PFroSummary_Distinct_byProvider %>%
+  mutate(Age = as.integer(difftime(Sys.Date(), dob, units = "days") / 365.25))
+
 
 # Write to CSV
 write.csv(PFroSummary_Distinct_byProvider, "./data/output/PFroSummary_Distinct_byProvider.csv")
@@ -617,7 +623,8 @@ kable(code_prov_counts_filtered, format = "html", caption = "Summary of Services
 
 ```
 
-## Figure 2 (beta)
+## Figure 2: PFro Services by Cost
+
 ```{r}
 #| label: First Plot (beta)
 #| eval: true
@@ -659,9 +666,104 @@ ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = svccode, fill =
   scale_fill_manual(values = custom_colors)
 ```
 
-## Figure 2
+## Now entering the PFro Member Engagement Matrix 
 
-The following figure assesses how many HCA members in services with a PFro have been deemed eligible for a VBP measure. For this assessment, T1016 (Case Management) was excluded.
+|  |VBP|No VBP|
+|--|--|--|
+| PFro | VBP PFro | No VBP PFro |
+| No PFro | VBP No PFro | No VBP No PFro |
+
+```{r}
+#| label: PFro Engagement Matrix
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+# Assuming the data frames NAZMmbrshp and PFroBHClaims are already loaded
+
+PFroEngagementMatrix <- data.frame(
+  AHCCCSID = NAZMmbrshp$AHCCCSID,
+  isPFro = ifelse(NAZMmbrshp$AHCCCSID %in% PFroSummary_Distinct_byProvider$AHCCCSID, "PFro", "NoPFro")
+)
+
+# Now add VBPQR
+PFroEngagementMatrix <- data.frame(
+  AHCCCSID = NAZMmbrshp$AHCCCSID,
+  isPFro = ifelse(NAZMmbrshp$AHCCCSID %in% PFroBHClaims$AHCCCSID, "PFro", "NoPFro"),
+  isVBP = ifelse(NAZMmbrshp$AHCCCSID %in% VBPQR$AHCCCSID, "VBP", "NoVBP")
+)
+
+# Create a summary table
+summary_table <- table(PFroEngagementMatrix$isPFro, PFroEngagementMatrix$isVBP)
+
+kable(summary_table)
+```
+
+```{r}
+#| label: No PFro Summary
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+# Convert the table to a data frame
+summary_df <- as.data.frame(summary_table)
+
+# Rename the columns
+colnames(summary_df) <- c("PFro", "VBP", "n")
+
+# Define the custom colors
+my_colors <- c("VBP" = "#FFA500", "NoVBP" = "#000080")
+
+# Plot for NoPFro
+ggplot(data = filter(summary_df, PFro == "NoPFro"), aes(x = VBP, y = n, fill = VBP)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = my_colors) +
+  labs(title = "Summary of NoPFro Engagement",
+       subtitle = "Distinct Members",
+       x = "VBP",
+       y = "Count",
+       fill = "VBP") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  facet_wrap(~ PFro, ncol = 1, scales = "free") +
+  theme(strip.text = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.y = element_blank()
+        )
+```
+```{r}
+#| label: PFro Summary
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+# Plot for PFro
+
+ggplot(data = filter(summary_df, PFro == "PFro"), aes(x = VBP, y = n, fill = VBP)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = my_colors) +
+  labs(title = "Summary of PFro Engagement",
+       subtitle = "Distinct Members",
+       x = "VBP",
+       y = "Count",
+       fill = "VBP") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  facet_wrap(~ PFro, ncol = 1, scales = "free") +
+  theme(strip.text = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.y = element_blank()
+        )
+```
+
+
+## Figure 3: PFro Member Engagement
+
+The following figure assesses the number of HCA members in services with a PFro that have been deemed eligible for a VBP measure. For this assessment, T1016 (Case Management) was excluded.
 
 ```{r}
 #| label: Distinct Members
@@ -679,18 +781,31 @@ stacked_data <- PFroSummary %>%
   group_by(ProviderName, isVBP) %>%
   summarise(count = n_distinct(MemberID))
 
-# Create the stacked bar chart with x and y-axis flipped
+# Calculate the grand total
+grand_total <- sum(stacked_data$count)
+
+# Add a column for the percent of grand total
+stacked_data <- stacked_data %>%
+  mutate(Percent_of_Grand_Total = (count / grand_total) * 100)
+
 ggplot(stacked_data, aes(x = count, y = ProviderName, fill = isVBP)) +
   geom_bar(stat = "identity") +
   labs(title = "Current PFro Engagement with VBP Eligible Members",
-       subtitle = "T1016 Removed",
        x = "Count of Distinct MemberID",
        y = "ProviderName",
-       fill = "VBP Eligibility") +
+       fill = "VBP Eligibility",
+       caption = "T1016 Suppressed") +
   theme_minimal() +
-  theme(axis.text.y = element_text(hjust = 0))  # Adjust the position of y-axis labels
+  theme(axis.text.x.top = element_text(hjust = 0),
+        axis.title.y = element_blank(),
+        plot.title = element_text(hjust = .75),
+        plot.subtitle = element_text(hjust = 30)
+        ) + 
+  scale_fill_manual(values = c("#FFA500", "#000080"))  # Use custom colors for the fill
 
 ```
+
+## Table 2: PFro Member Engagement
 
 ```{r}
 #| label: Second Table
@@ -728,9 +843,11 @@ kable(summary_table)
 
 ```
 
+## Figure 4: PFro Member Engagement by County
+
 ```{r}
 #| label: County
-#| eval: false
+#| eval: true
 #| include: true
 #| echo: true
 #| warning: false
@@ -751,23 +868,125 @@ summary_table <- summary_table %>%
   arrange(resCountyName, desc(Count_of_Distinct_MemberID))
 
 # Create the stacked bar chart with flipped axes and sorted bars
-p <- ggplot(data = summary_table, aes(x = fct_reorder(resCountyName, Count_of_Distinct_MemberID, .fun = sum), y = Count_of_Distinct_MemberID, fill = ProviderName)) +
+ggplot(data = summary_table, aes(x = fct_reorder(resCountyName, Count_of_Distinct_MemberID, .fun = sum), y = Count_of_Distinct_MemberID, fill = ProviderName)) +
   geom_bar(stat = "identity") +
-  labs(title = "Number of MemberIDs by County and Provider (Excluding T1016)",
+  labs(title = "Member Engagement by County and Provider",
        subtitle = "T1016 Removed",
        x = "County",
        y = "Number of MemberIDs") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.title = element_blank()
+        ) +
   guides(fill = guide_legend(title = "Provider Name")) +
+  scale_fill_viridis_d()+  # Use the "viridis" color palette for the fill
   coord_flip()
-
-# Print the plot
-print(p)
 
 ```
 
-Make a choropleth map
+## Figure 5: Population Pyramid
+
+```{r}
+#| label: SexByAgeGroup
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+# Create the table for the Population Pyramid
+DemoTable_SexByAgeGroup <- PFroSummary_Distinct_byProvider |> 
+  select(Age, sex) |> 
+  mutate(`00 - 05` = case_when(
+    Age > 00 & Age <= 5 ~ "1", TRUE ~ "0")) |>
+  mutate(`06 - 12` = case_when(
+    Age > 06 & Age <= 12 ~ "1", TRUE ~ "0")) |> 
+  mutate(`13 - 17` = case_when(
+    Age > 13 & Age <= 17 ~ "1", TRUE ~ "0")) |> 
+  mutate(`18 - 34` = case_when(
+    Age > 18 & Age <= 34 ~ "1", TRUE ~ "0")) |> 
+  mutate(`35 - 64` = case_when(
+    Age > 35 & Age <= 64 ~ "1", TRUE ~ "0")) |> 
+  mutate(`65 - 99` = case_when(
+    Age > 65  ~ "1", TRUE ~ "0")) |> 
+  subset(select = -Age) |> 
+  #covert to dbl
+  mutate(`00 - 05` = as.numeric(`00 - 05`)) |>  
+  mutate(`06 - 12` = as.numeric(`06 - 12`)) |> 
+  mutate(`13 - 17` = as.numeric(`13 - 17`)) |> 
+  mutate(`18 - 34` = as.numeric(`18 - 34`)) |> 
+  mutate(`35 - 64` = as.numeric(`35 - 64`)) |> 
+  mutate(`65 - 99` = as.numeric(`65 - 99`)) |> 
+  #Group by sex and summarize
+  group_by(sex) |> 
+  summarise_if(is.numeric, sum, na.rm = TRUE) |> 
+  pivot_longer(!sex, 
+               names_to = "Age_Group",
+               values_to = "n") |> 
+  # Change "M" "F" to "Male" "Female"
+  mutate(sex = case_when(
+    sex == "M" ~ "Male",
+    sex == "F" ~ "Female"
+  )) |> 
+  #change male to negative so it flips sides of the axis on a shared facet plot
+  mutate(n = ifelse(sex == "Male", n * -1, n)) |> 
+  #change male female to factor
+  mutate(sex = factor(sex, levels = c("Male","Female")))
+
+# Export the table as a csv for reference, Date is date of progress report
+write.csv(DemoTable_SexByAgeGroup, "./data/output/2023-07-26_DemoTable_SexByAgeGroup.csv")
+
+
+```
+
+```{r}
+#| label: Graphic_SexByAgeGroup_Pyramid
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+Fig_PopPyramid <- ggplot(DemoTable_SexByAgeGroup, aes(x = n, y = reorder(Age_Group, n), fill = sex)) +
+  geom_bar(stat = "identity", position = "identity") +
+  geom_text(aes(label = abs(n), hjust = ifelse(sex == "Female", -0.2, 1.2)), size = 3) +
+  scale_fill_manual(values = c(Female = "#5b3493", Male = "#434444")) +
+  facet_wrap(~ sex, scales = "free") +
+  labs(
+    x = NULL, 
+    y = NULL, 
+    fill = "Member Sex",
+    title = "PFro Member Engagement by Gender and Age Group",
+    subtitle = "July 27, 2023",
+    caption = "Source: BCBSAZ Global Members, Extracted 2023-07-26")  +
+  theme_classic() +
+  theme(
+    axis.text.y.right = element_text(margin = margin(0, 2.2, 0, 2.2)),
+    legend.position = "bottom", 
+    legend.justification = "center",
+    panel.spacing.x = unit(0, "pt"))
+
+## Create Graphics
+# Set the file path and name for saving the .png file
+Report <- "./data/output/"
+Report_Filename <- "2023-07-26_Fig_PopPyramid.png"
+
+# Save the ggplot as a .png file
+# Report
+ggsave(file.path(Report, Report_Filename), plot = Fig_PopPyramid, width = 6, height = 4, dpi = 300)
+
+Fig_PopPyramid
+
+```
+
+
+```{r}
+#| label: TBD
+#| eval: false
+#| include: false
+#| echo: false
+#| warning: false
+#| error: false
+
+```
 
 ```{r}
 #| label: Map
