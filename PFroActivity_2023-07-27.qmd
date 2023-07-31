@@ -30,6 +30,7 @@ library(reprex)
 library(knitr)
 library(kableExtra)
 library(scales)
+library(tidyr)
 
 # table for inline code
 InLineCode <- data.frame(
@@ -666,7 +667,7 @@ ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = svccode, fill =
   scale_fill_manual(values = custom_colors)
 ```
 
-## Now entering the PFro Member Engagement Matrix 
+### Now entering the PFro Member Engagement Matrix 
 
 |  |VBP|No VBP|
 |--|--|--|
@@ -698,7 +699,7 @@ PFroEngagementMatrix <- data.frame(
 # Create a summary table
 summary_table <- table(PFroEngagementMatrix$isPFro, PFroEngagementMatrix$isVBP)
 
-kable(summary_table)
+kable(summary_table, format = "html", caption = "Summary of PFro Involvement with VBP Measures")
 ```
 
 ```{r}
@@ -716,51 +717,36 @@ colnames(summary_df) <- c("PFro", "VBP", "n")
 
 # Define the custom colors
 my_colors <- c("VBP" = "#FFA500", "NoVBP" = "#000080")
-
-# Plot for NoPFro
-ggplot(data = filter(summary_df, PFro == "NoPFro"), aes(x = VBP, y = n, fill = VBP)) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = my_colors) +
-  labs(title = "Summary of NoPFro Engagement",
-       subtitle = "Distinct Members",
-       x = "VBP",
-       y = "Count",
-       fill = "VBP") +
-  theme_minimal() +
-  theme(legend.position = "bottom") +
-  facet_wrap(~ PFro, ncol = 1, scales = "free") +
-  theme(strip.text = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.title.y = element_blank()
-        )
 ```
+
 ```{r}
-#| label: PFro Summary
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-# Plot for PFro
 
-ggplot(data = filter(summary_df, PFro == "PFro"), aes(x = VBP, y = n, fill = VBP)) +
+# Plot for PFro
+ggplot(data = filter(summary_df, PFro == "PFro"), aes(x = PFro, y = n, fill = VBP)) +
   geom_bar(stat = "identity") +
   scale_fill_manual(values = my_colors) +
-  labs(title = "Summary of PFro Engagement",
-       subtitle = "Distinct Members",
-       x = "VBP",
+  labs(title = "Summary of PFro and VBP Engagement",
+       x = "PFro",
        y = "Count",
        fill = "VBP") +
   theme_minimal() +
-  theme(legend.position = "bottom") +
-  facet_wrap(~ PFro, ncol = 1, scales = "free") +
-  theme(strip.text = element_blank(),
-        axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.title.y = element_blank()
-        )
+  theme(legend.position = "bottom")
 ```
 
+```{r}
+# Plot for NoPFro
 
+# Plot for PFro
+ggplot(data = filter(summary_df, PFro == "NoPFro"), aes(x = PFro, y = n, fill = VBP)) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = my_colors) +
+  labs(title = "Summary of PFro and VBP Engagement",
+       x = "PFro",
+       y = "Count",
+       fill = "VBP") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
 ## Figure 3: PFro Member Engagement
 
 The following figure assesses the number of HCA members in services with a PFro that have been deemed eligible for a VBP measure. For this assessment, T1016 (Case Management) was excluded.
