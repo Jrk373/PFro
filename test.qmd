@@ -1,5 +1,5 @@
 ---
-title: "Peer and Family Run Organizational Activity in Northern Arizona"
+title: "Test"
 author: 
   name: "John Ryan Kivela, MA"
   email: "Ryan.Kivela@narbha.org"
@@ -45,7 +45,7 @@ data("county.map")
 
 # Introduction
 
-The Alliance is researching the prevalence and impact of Peer and Family Run Organizations (PFros) on members of the alliance. The results of this research will drive future decision making as we incorporate Peer and Family Run Organizations (PFro) into the Alliance ACO.
+The Alliance is researching the prevalence and impact of Peer and Family Run Organizations (PFros) on members of the alliance. The results of this research will drive future decision making as we incorporate Peer and Family Run Organizations (PFro) into the Alliance ACO. 
 
 # Method
 
@@ -53,7 +53,9 @@ Basic strategy
 
 Key Indicators
 
-Things we looked at - A - B
+Things we looked at
+-   A
+-   B
 
 # Data Preparation
 
@@ -286,7 +288,7 @@ PFroActivity <- merge(x = PFroActivity,
 
 ```
 
-Then import the aggregated Health Choice VBP Quality Roster. This allows us to identify those members who have been served by a PFro, who have also been deemed eligible for a VBP measure. This is taken from the 7/21/23 report.
+Then import the aggregated Health Choice VBP Quality Roster. This allows us to identify those members who have been served by a PFro, who have also been deemed eligible for a VBP measure. This is taken from the 7/21/23 report. 
 
 ```{r}
 #| label: Load VBP data
@@ -414,7 +416,7 @@ PFroActivity <- PFroActivity %>%
   )
 ```
 
-Finally, we select desired variables from this monster table into the final dataset, called PFroSummary. We also create a separate version with less variables, but filtered for only distinct MemberIDs by provider.
+Finally, we select desired variables from this monster table into the final dataset, called PFroSummary. We also create a separate version with less variables, but filtered for only distinct MemberIDs by provider. 
 
 ```{r}
 #| label: DIal in the data set
@@ -665,13 +667,6 @@ ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = svccode, fill =
   scale_fill_manual(values = custom_colors)
 ```
 
-## Now entering the PFro Member Engagement Matrix
-
-|         | VBP         | No VBP         |
-|---------|-------------|----------------|
-| PFro    | VBP PFro    | No VBP PFro    |
-| No PFro | VBP No PFro | No VBP No PFro |
-
 ```{r}
 #| label: PFro Engagement Matrix
 #| eval: true
@@ -697,7 +692,7 @@ PFroEngagementMatrix <- data.frame(
 # Create a summary table
 summary_table <- table(PFroEngagementMatrix$isPFro, PFroEngagementMatrix$isVBP)
 
-kable(summary_table)
+table(summary_table)
 ```
 
 ```{r}
@@ -729,302 +724,4 @@ ggplot(data = filter(summary_df, PFro == "PFro"), aes(x = PFro, y = n, fill = VB
        fill = "VBP") +
   theme_minimal() +
   theme(legend.position = "bottom")
-```
-
-```{r}
-# Plot for NoPFro
-
-# Plot for PFro
-ggplot(data = filter(summary_df, PFro == "NoPFro"), aes(x = PFro, y = n, fill = VBP)) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = my_colors) +
-  labs(title = "Summary of PFro and VBP Engagement",
-       x = "PFro",
-       y = "Count",
-       fill = "VBP") +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-```
-
-## Figure 3: PFro Member Engagement
-
-The following figure assesses the number of HCA members in services with a PFro that have been deemed eligible for a VBP measure. For this assessment, T1016 (Case Management) was excluded.
-
-```{r}
-#| label: Distinct Members
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-# Assuming PFroSummary is your data frame
-
-# Calculate the count of distinct MemberID for each ProviderName and isVBP combination
-stacked_data <- PFroSummary %>%
-  filter(svccode != "T1016") |>
-  group_by(ProviderName, isVBP) %>%
-  summarise(count = n_distinct(MemberID))
-
-# Calculate the grand total
-grand_total <- sum(stacked_data$count)
-
-# Add a column for the percent of grand total
-stacked_data <- stacked_data %>%
-  mutate(Percent_of_Grand_Total = (count / grand_total) * 100)
-
-ggplot(stacked_data, aes(x = count, y = ProviderName, fill = isVBP)) +
-  geom_bar(stat = "identity") +
-  labs(title = "Current PFro Engagement with VBP Eligible Members",
-       x = "Count of Distinct MemberID",
-       y = "ProviderName",
-       fill = "VBP Eligibility",
-       caption = "T1016 Suppressed") +
-  theme_minimal() +
-  theme(axis.text.x.top = element_text(hjust = 0),
-        axis.title.y = element_blank(),
-        plot.title = element_text(hjust = .75),
-        plot.subtitle = element_text(hjust = 30)
-        ) + 
-  scale_fill_manual(values = c("#FFA500", "#000080"))  # Use custom colors for the fill
-
-```
-
-## Table 2: PFro Member Engagement
-
-```{r}
-#| label: Second Table
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-# Filter out rows where svccode is "T1016"
-PFroSummary_filtered <- PFroSummary %>%
-  filter(svccode != "T1016")
-
-# Calculate the count of distinct MemberID for each ProviderName and isVBP combination
-summary_table <- PFroSummary_filtered %>%
-  group_by(ProviderName, isVBP) %>%
-  summarise(Count_of_Distinct_MemberID = n_distinct(MemberID)) %>%
-  ungroup() %>%
-  group_by(ProviderName) %>%
-  mutate(Total_by_Provider = sum(Count_of_Distinct_MemberID),
-         `Percent of Total per Provider` = (Count_of_Distinct_MemberID / Total_by_Provider) * 100) %>%
-  select(-Total_by_Provider) # Remove the intermediate column
-
-# Format the "Percent of Total per Provider" column to have 2 decimal places
-summary_table$`Percent of Total per Provider` <- sprintf("%.2f%%", summary_table$`Percent of Total per Provider`)
-
-# Calculate the grand total
-grand_total <- n_distinct(PFroSummary_filtered$MemberID)
-
-# Calculate the percent of grand total for each ProviderName
-summary_table$`Percent of Grand Total` <- sprintf("%.2f%%", (summary_table$Count_of_Distinct_MemberID / grand_total) * 100)
-
-kable(summary_table)
-
-
-```
-
-## Figure 4: PFro Member Engagement by County
-
-```{r}
-#| label: County
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-# Filter out rows where svccode is "T1016"
-PFroSummary_filtered <- PFroSummary %>%
-  filter(svccode != "T1016")
-
-# Create a summary table by resCountyName and ProviderName
-summary_table <- PFroSummary_filtered %>%
-  group_by(resCountyName, ProviderName) %>%
-  summarise(Count_of_Distinct_MemberID = n_distinct(MemberID)) %>%
-  ungroup()
-
-# Sort the resCountyName based on the count of MemberIDs in descending order
-summary_table <- summary_table %>%
-  arrange(resCountyName, desc(Count_of_Distinct_MemberID))
-
-# Create the stacked bar chart with flipped axes and sorted bars
-ggplot(data = summary_table, aes(x = fct_reorder(resCountyName, Count_of_Distinct_MemberID, .fun = sum), y = Count_of_Distinct_MemberID, fill = ProviderName)) +
-  geom_bar(stat = "identity") +
-  labs(title = "Member Engagement by County and Provider",
-       subtitle = "T1016 Removed",
-       x = "County",
-       y = "Number of MemberIDs") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.title = element_blank()
-        ) +
-  guides(fill = guide_legend(title = "Provider Name")) +
-  scale_fill_viridis_d()+  # Use the "viridis" color palette for the fill
-  coord_flip()
-
-```
-
-## Figure 5: Population Pyramid
-
-```{r}
-#| label: SexByAgeGroup
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-# Create the table for the Population Pyramid
-DemoTable_SexByAgeGroup <- PFroSummary_Distinct_byProvider |> 
-  select(Age, sex) |> 
-  mutate(`00 - 05` = case_when(
-    Age > 00 & Age <= 5 ~ "1", TRUE ~ "0")) |>
-  mutate(`06 - 12` = case_when(
-    Age > 06 & Age <= 12 ~ "1", TRUE ~ "0")) |> 
-  mutate(`13 - 17` = case_when(
-    Age > 13 & Age <= 17 ~ "1", TRUE ~ "0")) |> 
-  mutate(`18 - 34` = case_when(
-    Age > 18 & Age <= 34 ~ "1", TRUE ~ "0")) |> 
-  mutate(`35 - 64` = case_when(
-    Age > 35 & Age <= 64 ~ "1", TRUE ~ "0")) |> 
-  mutate(`65 - 99` = case_when(
-    Age > 65  ~ "1", TRUE ~ "0")) |> 
-  subset(select = -Age) |> 
-  #covert to dbl
-  mutate(`00 - 05` = as.numeric(`00 - 05`)) |>  
-  mutate(`06 - 12` = as.numeric(`06 - 12`)) |> 
-  mutate(`13 - 17` = as.numeric(`13 - 17`)) |> 
-  mutate(`18 - 34` = as.numeric(`18 - 34`)) |> 
-  mutate(`35 - 64` = as.numeric(`35 - 64`)) |> 
-  mutate(`65 - 99` = as.numeric(`65 - 99`)) |> 
-  #Group by sex and summarize
-  group_by(sex) |> 
-  summarise_if(is.numeric, sum, na.rm = TRUE) |> 
-  pivot_longer(!sex, 
-               names_to = "Age_Group",
-               values_to = "n") |> 
-  # Change "M" "F" to "Male" "Female"
-  mutate(sex = case_when(
-    sex == "M" ~ "Male",
-    sex == "F" ~ "Female"
-  )) |> 
-  #change male to negative so it flips sides of the axis on a shared facet plot
-  mutate(n = ifelse(sex == "Male", n * -1, n)) |> 
-  #change male female to factor
-  mutate(sex = factor(sex, levels = c("Male","Female")))
-
-# Export the table as a csv for reference, Date is date of progress report
-write.csv(DemoTable_SexByAgeGroup, "./data/output/2023-07-26_DemoTable_SexByAgeGroup.csv")
-
-
-```
-
-```{r}
-#| label: Graphic_SexByAgeGroup_Pyramid
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-Fig_PopPyramid <- ggplot(DemoTable_SexByAgeGroup, aes(x = n, y = reorder(Age_Group, n), fill = sex)) +
-  geom_bar(stat = "identity", position = "identity") +
-  geom_text(aes(label = abs(n), hjust = ifelse(sex == "Female", -0.2, 1.2)), size = 3) +
-  scale_fill_manual(values = c(Female = "#5b3493", Male = "#434444")) +
-  facet_wrap(~ sex, scales = "free") +
-  labs(
-    x = NULL, 
-    y = NULL, 
-    fill = "Member Sex",
-    title = "PFro Member Engagement by Gender and Age Group",
-    subtitle = "July 27, 2023",
-    caption = "Source: BCBSAZ Global Members, Extracted 2023-07-26")  +
-  theme_classic() +
-  theme(
-    axis.text.y.right = element_text(margin = margin(0, 2.2, 0, 2.2)),
-    legend.position = "bottom", 
-    legend.justification = "center",
-    panel.spacing.x = unit(0, "pt"))
-
-## Create Graphics
-# Set the file path and name for saving the .png file
-Report <- "./data/output/"
-Report_Filename <- "2023-07-26_Fig_PopPyramid.png"
-
-# Save the ggplot as a .png file
-# Report
-ggsave(file.path(Report, Report_Filename), plot = Fig_PopPyramid, width = 6, height = 4, dpi = 300)
-
-Fig_PopPyramid
-
-```
-
-```{r}
-#| label: TBD
-#| eval: false
-#| include: false
-#| echo: false
-#| warning: false
-#| error: false
-
-```
-
-```{r}
-#| label: Map
-#| eval: false
-#| include: false
-#| echo: false
-#| warning: false
-#| error: false
-
-
-# Load the zip code data for mapping
-# Replace "path_to_zip_code_data" with the actual path to your zip code data file
-# The file should contain columns "region" (zip code) and "subregion" (name of the area)
-zip_codes_data <- read.csv("./data/data_reference_zip_code_database.csv")
-
-# Calculate the count of occurrences for each zip code in PFroSummary data
-zip_counts <- PFroSummary %>%
-  group_by(zipCode) %>%
-  tally()
-
-# Load the zip code data for Arizona
-arizona_zip_codes_data <- zip_codes_data %>%
-  filter(state == "AZ")
-
-# Rename the "zipCode" column in zip_counts to "region" for consistency
-zip_counts <- zip_counts %>%
-  rename(region = zipCode)
-
-# Rename the "zip" column in arizona zip coes data to "region" for consistency
-arizona_zip_codes_data <- arizona_zip_codes_data %>%
-  rename(region = zip)
-
-# Merge the zip code data for Arizona with the counts
-merged_data <- merge(arizona_zip_codes_data, zip_counts, by = "region", all.x = TRUE)
-
-# Create the choropleth map
-ggplot(merged_data, aes(x = longitude, y = latitude, group = "region", fill = n)) +
-  geom_polygon(color = "blue", size = 0.2) +
-  coord_fixed() +
-  labs(title = "Choropleth Map of Zip Code Counts in Arizona",
-       subtitle = "Counts of occurrences for each zip code",
-       fill = "n") +
-  theme_minimal() +
-  theme(legend.position = "bottom") +
-  scale_fill_viridis_c()
-    PrimaryDiagnosis,
-    DiagnosisGroupRange,
-    Diagnosis_Group,
-    isVBPQR,
-    Measure,
-    Gap.Status
-  )
-
-write.csv(PFroSummary, "./data/PFroSummary.csv")
-
-
 ```
