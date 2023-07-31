@@ -18,7 +18,11 @@ format:
 
 ```{r}
 #| label: Setup
+<<<<<<< HEAD
 #| include: true
+=======
+#| include: false
+>>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 #| echo: false
 #| warning: false
 #| error: false
@@ -27,9 +31,12 @@ format:
 library(tidyverse)
 library(readxl)
 library(reprex)
+<<<<<<< HEAD
 library(knitr)
 library(kableExtra)
 
+=======
+>>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 
 # table for inline code
 InLineCode <- data.frame(
@@ -55,6 +62,10 @@ The Alliance is researching the prevalence and impact of Peer and Family Run Org
 First we extracted all claims for the 2022 VBP Measurement Year (1/1/2022-12/31/2022) from the BCBSAZ-Health Choice data warehouse.
 
 ```{sql}
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 #| label: BH Claims Pull
 #| eval: false
 #| include: true
@@ -133,6 +144,7 @@ LEFT JOIN #ValueSetListMy2023 AS v ON shcavos.RenderingProviderNpi COLLATE SQL_L
                                     OR shcavos.Dx12 COLLATE SQL_Latin1_General_CP1_CI_AS = v.Code
 WHERE shcavos.begDate BETWEEN @start AND @end
 AND CASE WHEN v.Code IS NOT NULL THEN 'True' ELSE 'False' END = 'True'
+<<<<<<< HEAD
 AND shcavos.EncounterStatus = 'AP'
 ```
 
@@ -152,6 +164,9 @@ PFroBHClaims <- read_xlsx ("./data/BHClaims.xlsx", sheet = "Sheet1")
 colnames(PFroBHClaims)[colnames(PFroBHClaims) == "begDate"] <- "DateOfService"
 colnames(PFroBHClaims)[colnames(PFroBHClaims) == "calcnetpd"] <- "AmountPd"
 
+=======
+AND shcavos.EncounterStatus = 'AP';
+>>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 ```
 
 Then we extracted the current member roster from BCBSAZ Health Choice data warehouse
@@ -190,7 +205,28 @@ WHERE
 dm.LineOfBusiness = 'ArizonaACC'
 ```
 
+<<<<<<< HEAD
 Then we load up the Global Members Roster and filter it down to Alliance members only by filtering for residential addresses in the northern 5 counties, and auto-assignments to Alliance Providers.
+=======
+
+
+```{r}
+#| label: Load PFro Claims
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+PFroBHClaims <- read_xlsx ("./data/BHClaims.xlsx", sheet = "Sheet1")
+
+# Rename the column
+colnames(PFroBHClaims)[colnames(PFroBHClaims) == "begDate"] <- "DateOfService"
+
+```
+
+Then we connected enrollment data to the claims.
+>>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 
 ```{r}
 #| label: Load Global Members Roster
@@ -215,7 +251,10 @@ NAZMmbrshp <- GlblMmbrshp |>
 
 ```
 
+<<<<<<< HEAD
 Then we merge the Global Membership Roster with the PFro BH Claims records, attaching each CH claim to its respective member roster information.
+=======
+>>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 
 ```{r}
 #| label: Merge Enrollment
@@ -236,7 +275,51 @@ PFroActivity <- merge(x = NAZMmbrshp,
 
 ```
 
+<<<<<<< HEAD
 Now append the B2 Matrix description words for the svccodes
+=======
+Then we bring in the VBP Quality Roster to identify members who have also been counted
+
+```{r}
+#| label: Load VBP data
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+VBPQR <- read.csv("./data/VBPQR_AllAPsCombined_Cleaned_complete_2023-07-21.csv")
+
+# Rename the column 
+colnames(VBPQR)[colnames(VBPQR) == "Member.ID"] <- "MemberID"
+
+```
+
+Now append each record with possible VBP tokens
+
+```{r}
+#| label: Append VBP data to table
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+# Perform a left join to add "VBPQR$Measure" and "VBPQR$Gap.Status" to PFroActivity
+PFroActivity <- merge(x = PFroActivity,
+                      y = VBPQR[, c("MemberID", "Measure", "Gap.Status")],
+                      by.x = "MemberID",
+                      by.y = "MemberID",
+                      all.x = TRUE)
+
+# Add the "isVBPQR" column based on matching MemberID
+PFroActivity$isVBPQR <- ifelse(!is.na(PFroActivity$Measure), "VBP", "NoVBP")
+
+```
+
+
+Now append the description words for the svccodes
+>>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 
 ```{r}
 #| label: Append B2 Matrix data to table
@@ -259,7 +342,11 @@ PFroActivity <- merge(x = PFroActivity,
 
 ```
 
+<<<<<<< HEAD
 Now add in differentiators for diagnostic group ranges
+=======
+Now add in differentiators for diagnostic group range
+>>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 
 ```{r}
 #| label: Append Dx Group Range to table
@@ -280,6 +367,7 @@ PFroActivity <- merge(x = PFroActivity,
                       all.x = TRUE)
 ```
 
+<<<<<<< HEAD
 Then we load up the VBP Quality Roster from the VBP Validation Model for FUH to identify members who have also been counted as a part of VBP measures according to the HEalth Choice VBP Quality Roster.
 
 ```{r}
@@ -409,6 +497,9 @@ PFroActivity <- PFroActivity %>%
 ```
 
 Start to dial the data set in to make it more usable
+=======
+Start to dial the data set in to specificy Alliance members using GSA
+>>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 
 ```{r}
 #| label: DIal in the data set
@@ -418,6 +509,12 @@ Start to dial the data set in to make it more usable
 #| warning: false
 #| error: false
 
+<<<<<<< HEAD
+=======
+# Filter MemberACCGSA to only include "North" values
+PFroActivity <- PFroActivity[PFroActivity$MemberACCGSA == "North", ]
+
+>>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 # Now select the key variables for analysis
 PFroSummary <- PFroActivity |> 
   select(
@@ -438,6 +535,7 @@ PFroSummary <- PFroActivity |>
     ProviderType,
     Placesvc,
     units,
+<<<<<<< HEAD
     AmountPd,
     PrimaryDiagnosis,
     ICD10_Description,
@@ -709,5 +807,17 @@ ggplot(merged_data, aes(x = longitude, y = latitude, group = "region", fill = n)
   theme_minimal() +
   theme(legend.position = "bottom") +
   scale_fill_viridis_c()
+=======
+    PrimaryDiagnosis,
+    DiagnosisGroupRange,
+    Diagnosis_Group,
+    isVBPQR,
+    Measure,
+    Gap.Status
+  )
+
+write.csv(PFroSummary, "./data/PFroSummary.csv")
+
+>>>>>>> 2656bf9eb1e7eb4163b6e5f11fde0550b85dca61
 
 ```
