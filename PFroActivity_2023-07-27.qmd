@@ -27,6 +27,8 @@ format:
 library(tidyverse)
 library(readxl)
 library(reprex)
+library(knitr)
+library(kableExtra)
 
 
 # table for inline code
@@ -362,6 +364,50 @@ PFroActivity$isVBP <- ifelse(!is.na(PFroActivity$isVBP_AMM) |
 
 ```
 
+Next we check to see if any of the people identified so far had an eligible FUH7 inpatient claim. 
+
+```{r}
+#| label: Add inpatient indicator
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+IPClaims <- read_xlsx("./data/data_original_cat_2022-12-31_IPClaims.xlsx")
+
+# Assuming PFroActivity and IPClaims are the names of your data frames
+
+# Create a new column in PFroActivity called isIP
+PFroActivity <- PFroActivity %>%
+  mutate(
+    isIP = ifelse(MemberID %in% IPClaims$MemberID, "IPClaim", "NoIP")
+  )
+
+```
+
+Now append an indicator for any antidepressant medication. This data is not for the same time period (yet). I borrowed it from the AMM model on a whim.
+
+```{r}
+#| label: Add antidepressant med indicator
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+PBMClaims <- read.csv("./data/DataRaw_PBMClaims_2023-05-31.csv")
+
+# Rename the column 
+colnames(PBMClaims)[colnames(PBMClaims) == "PrimaryId"] <- "primaryId"
+
+# Create a new column in PFroActivity called isADMed
+PFroActivity <- PFroActivity %>%
+  mutate(
+    isADMed = ifelse(primaryId %in% PBMClaims$primaryId, "ADMedClaim", "NoADMed")
+  )
+```
+
 Start to dial the data set in to make it more usable
 
 ```{r}
@@ -403,7 +449,9 @@ PFroSummary <- PFroActivity |>
     isVBP_FUH,
     GapStatus_FUH,
     isVBP_HDO,
-    GapStatus_HDO
+    GapStatus_HDO,
+    isIP,
+    isADMed
   )
 
 write.csv(PFroSummary, "./data/output/PFroSummary.csv")
@@ -462,11 +510,6 @@ And now a table for that
 #| warning: false
 #| error: false
 
-
-# Load the required libraries
-library(dplyr)
-library(knitr)
-
 # Calculate the count of Code_Description by ProviderName and svccode
 code_prov_counts <- PFroSummary %>%
   group_by(Code_Description, ProviderName, svccode) %>%
@@ -514,6 +557,8 @@ kable(code_prov_counts_filtered, format = "html", caption = "Summary of Code_Des
 
 ```
 
+Services to distinct members by provider. T1016 removed.
+
 ```{r}
 #| label: Distinct Members
 #| eval: true
@@ -526,6 +571,7 @@ kable(code_prov_counts_filtered, format = "html", caption = "Summary of Code_Des
 
 # Calculate the count of distinct MemberID for each ProviderName and isVBP combination
 stacked_data <- PFroSummary %>%
+  filter(svccode != "T1016") |>
   group_by(ProviderName, isVBP) %>%
   summarise(count = n_distinct(MemberID))
 
@@ -533,12 +579,13 @@ stacked_data <- PFroSummary %>%
 ggplot(stacked_data, aes(x = count, y = ProviderName, fill = isVBP)) +
   geom_bar(stat = "identity") +
   labs(title = "Stacked Bar Chart of Count of Distinct MemberID vs. ProviderName",
+       subtitle = "T1016 Removed",
        x = "Count of Distinct MemberID",
        y = "ProviderName",
        fill = "isVBP") +
   theme_minimal() +
   theme(axis.text.y = element_text(hjust = 0))  # Adjust the position of y-axis labels
-  coord_flip()
+
 ```
 
 ```{r}
@@ -548,8 +595,6 @@ ggplot(stacked_data, aes(x = count, y = ProviderName, fill = isVBP)) +
 #| echo: true
 #| warning: false
 #| error: false
-
-library(dplyr)
 
 # Filter out rows where svccode is "T1016"
 PFroSummary_filtered <- PFroSummary %>%
@@ -574,14 +619,7 @@ grand_total <- n_distinct(PFroSummary_filtered$MemberID)
 # Calculate the percent of grand total for each ProviderName
 summary_table$`Percent of Grand Total` <- sprintf("%.2f%%", (summary_table$Count_of_Distinct_MemberID / grand_total) * 100)
 
-# Create the footnote
-footnote_text <- "Case Management Services (T1016) have been removed"
-
-# Print the summary table
-print(summary_table)
-
-# Print the footnote
-cat("\nFootnote:", footnote_text)
+kable(summary_table)
 
 
 ```
@@ -593,9 +631,6 @@ cat("\nFootnote:", footnote_text)
 #| echo: true
 #| warning: false
 #| error: false
-
-library(ggplot2)
-library(dplyr)
 
 # Filter out rows where svccode is "T1016"
 PFroSummary_filtered <- PFroSummary %>%
@@ -615,17 +650,13 @@ summary_table <- summary_table %>%
 p <- ggplot(data = summary_table, aes(x = fct_reorder(resCountyName, Count_of_Distinct_MemberID, .fun = sum), y = Count_of_Distinct_MemberID, fill = ProviderName)) +
   geom_bar(stat = "identity") +
   labs(title = "Number of MemberIDs by County and Provider (Excluding T1016)",
+       subtitle = "T1016 Removed",
        x = "County",
        y = "Number of MemberIDs") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   guides(fill = guide_legend(title = "Provider Name")) +
   coord_flip()
-
-# Add the footnote
-p <- p +
-  annotate("text", x = Inf, y = Inf, hjust = 1, vjust = 1, 
-           label = "T1016 removed", color = "red", size = 3)
 
 # Print the plot
 print(p)
@@ -637,8 +668,8 @@ Make a choropleth map
 ```{r}
 #| label: Map
 #| eval: false
-#| include: true
-#| echo: true
+#| include: false
+#| echo: false
 #| warning: false
 #| error: false
 

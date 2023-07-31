@@ -11,3 +11,9 @@ editor: visual
 [13] "Code_Description"    "ProviderName"        "ProviderType"        "Placesvc"            "units"               "AmountPd"           
 [19] "PrimaryDiagnosis"    "ICD10_Description"   "DiagnosisGroupRange" "Diagnosis_Group"     "isVBP"               "isVBP_AMM"          
 [25] "GapStatus_AMM"       "isVBP_FUH"           "GapStatus_FUH"       "isVBP_HDO"           "GapStatus_HDO"
+
+> names(zip_codes_data)
+ [1] "zipCode"                  "type"                     "decommissioned"           "primary_city"            
+ [5] "acceptable_cities"        "unacceptable_cities"      "state"                    "county"                  
+ [9] "timezone"                 "area_codes"               "world_region"             "country"                 
+[13] "latitude"                 "longitude"                "irs_estimated_population"
