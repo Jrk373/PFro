@@ -217,6 +217,8 @@ NAZMmbrshp <- GlblMmbrshp |>
                 bhhShortname)
            ))
 
+# Note: The number of members is higher (250K) than the usual (105K) because disenrolled members are NOT excluded. 
+
 ```
 
 Then we merge the Global Membership Roster with the PFro BH Claims records, attaching each behavioral health claim to its respective member information.
@@ -320,13 +322,9 @@ PFroActivity$isVBP_AMM <- NA
 PFroActivity$GapStatus_AMM <- NA
 
 # Check for matching MemberID and specific Measure, then assign values to the new columns
-PFroActivity$isVBP_AMM <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & 
-                                 VBPQR$Measure == "AMM - Antidepressant Medication Management - Effective Acute Phase Treatment – Total",
-                                 "AMM", PFroActivity$isVBP_AMM)
+PFroActivity$isVBP_AMM <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & VBPQR$Measure == "AMM - Antidepressant Medication Management - Effective Acute Phase Treatment – Total", "AMM", PFroActivity$isVBP_AMM)
 
-PFroActivity$GapStatus_AMM <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & 
-                                     VBPQR$Measure == "AMM - Antidepressant Medication Management - Effective Acute Phase Treatment – Total",
-                                     VBPQR$Gap.Status, PFroActivity$GapStatus_AMM)
+PFroActivity$GapStatus_AMM <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & VBPQR$Measure == "AMM - Antidepressant Medication Management - Effective Acute Phase Treatment – Total", VBPQR$Gap.Status, PFroActivity$GapStatus_AMM)
 
 # Then FUH
 
@@ -335,13 +333,9 @@ PFroActivity$isVBP_FUH <- NA
 PFroActivity$GapStatus_FUH <- NA
 
 # Check for matching MemberID and specific Measure, then assign values to the new columns
-PFroActivity$isVBP_FUH <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & 
-                                 VBPQR$Measure == "FUH - Follow-Up after Hospitalization for Mental Illness: 7 Day",
-                                 "FUH", PFroActivity$isVBP_FUH)
+PFroActivity$isVBP_FUH <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & VBPQR$Measure == "FUH - Follow-Up after Hospitalization for Mental Illness: 7 Day", "FUH", PFroActivity$isVBP_FUH)
 
-PFroActivity$GapStatus_FUH <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & 
-                                     VBPQR$Measure == "FUH - Follow-Up after Hospitalization for Mental Illness: 7 Day",
-                                     VBPQR$Gap.Status, PFroActivity$GapStatus_FUH)
+PFroActivity$GapStatus_FUH <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & VBPQR$Measure == "FUH - Follow-Up after Hospitalization for Mental Illness: 7 Day", VBPQR$Gap.Status, PFroActivity$GapStatus_FUH)
 
 # Then HDO
 
@@ -350,23 +344,16 @@ PFroActivity$isVBP_HDO <- NA
 PFroActivity$GapStatus_HDO <- NA
 
 # Check for matching MemberID and specific Measure, then assign values to the new columns
-PFroActivity$isVBP_HDO <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & 
-                                 VBPQR$Measure == "HDO - Use of Opioids at High Dosage",
-                                 "HDO", PFroActivity$isVBP_HDO)
+PFroActivity$isVBP_HDO <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & VBPQR$Measure == "HDO - Use of Opioids at High Dosage", "HDO", PFroActivity$isVBP_HDO)
 
-PFroActivity$GapStatus_HDO <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & 
-                                     VBPQR$Measure == "HDO - Use of Opioids at High Dosage",
-                                     VBPQR$Gap.Status, PFroActivity$GapStatus_HDO)
+PFroActivity$GapStatus_HDO <- ifelse(PFroActivity$MemberID %in% VBPQR$MemberID & VBPQR$Measure == "HDO - Use of Opioids at High Dosage", VBPQR$Gap.Status, PFroActivity$GapStatus_HDO)
 
 # Create the new column "isVBP" with default value "NotVBP"
 PFroActivity$isVBP <- "NotVBP"
 
 # Check if any of the isVBP_AMM, isVBP_FUH, or isVBP_HDO columns are not NA
 # If any of them is not NA, assign "isVBP" to the "isVBP" column
-PFroActivity$isVBP <- ifelse(!is.na(PFroActivity$isVBP_AMM) |
-                              !is.na(PFroActivity$isVBP_FUH) |
-                              !is.na(PFroActivity$isVBP_HDO),
-                              "isVBP", PFroActivity$isVBP)
+PFroActivity$isVBP <- ifelse(!is.na(PFroActivity$isVBP_AMM) | !is.na(PFroActivity$isVBP_FUH) | !is.na(PFroActivity$isVBP_HDO), "isVBP", PFroActivity$isVBP)
 
 ```
 
@@ -388,7 +375,7 @@ IPClaims <- read_xlsx("./data/data_original_cat_2022-12-31_IPClaims.xlsx")
 PFroActivity <- PFroActivity %>%
   mutate(
     isIP = ifelse(MemberID %in% IPClaims$MemberID, "IPClaim", "NoIP")
-  )
+        )
 
 ```
 
@@ -665,87 +652,6 @@ ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = svccode, fill =
   scale_fill_manual(values = custom_colors)
 ```
 
-## Now entering the PFro Member Engagement Matrix
-
-|         | VBP         | No VBP         |
-|---------|-------------|----------------|
-| PFro    | VBP PFro    | No VBP PFro    |
-| No PFro | VBP No PFro | No VBP No PFro |
-
-```{r}
-#| label: PFro Engagement Matrix
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-# Assuming the data frames NAZMmbrshp and PFroBHClaims are already loaded
-
-PFroEngagementMatrix <- data.frame(
-  AHCCCSID = NAZMmbrshp$AHCCCSID,
-  isPFro = ifelse(NAZMmbrshp$AHCCCSID %in% PFroSummary_Distinct_byProvider$AHCCCSID, "PFro", "NoPFro")
-)
-
-# Now add VBPQR
-PFroEngagementMatrix <- data.frame(
-  AHCCCSID = NAZMmbrshp$AHCCCSID,
-  isPFro = ifelse(NAZMmbrshp$AHCCCSID %in% PFroBHClaims$AHCCCSID, "PFro", "NoPFro"),
-  isVBP = ifelse(NAZMmbrshp$AHCCCSID %in% VBPQR$AHCCCSID, "VBP", "NoVBP")
-)
-
-# Create a summary table
-summary_table <- table(PFroEngagementMatrix$isPFro, PFroEngagementMatrix$isVBP)
-
-kable(summary_table)
-```
-
-```{r}
-#| label: No PFro Summary
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-# Convert the table to a data frame
-summary_df <- as.data.frame(summary_table)
-
-# Rename the columns
-colnames(summary_df) <- c("PFro", "VBP", "n")
-
-# Define the custom colors
-my_colors <- c("VBP" = "#FFA500", "NoVBP" = "#000080")
-```
-
-```{r}
-
-# Plot for PFro
-ggplot(data = filter(summary_df, PFro == "PFro"), aes(x = PFro, y = n, fill = VBP)) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = my_colors) +
-  labs(title = "Summary of PFro and VBP Engagement",
-       x = "PFro",
-       y = "Count",
-       fill = "VBP") +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-```
-
-```{r}
-# Plot for NoPFro
-
-# Plot for PFro
-ggplot(data = filter(summary_df, PFro == "NoPFro"), aes(x = PFro, y = n, fill = VBP)) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = my_colors) +
-  labs(title = "Summary of PFro and VBP Engagement",
-       x = "PFro",
-       y = "Count",
-       fill = "VBP") +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-```
-
 ## Figure 3: PFro Member Engagement
 
 The following figure assesses the number of HCA members in services with a PFro that have been deemed eligible for a VBP measure. For this assessment, T1016 (Case Management) was excluded.
@@ -962,69 +868,65 @@ Fig_PopPyramid
 
 ```
 
-```{r}
-#| label: TBD
-#| eval: false
-#| include: false
-#| echo: false
-#| warning: false
-#| error: false
+## Table 5: PFroEngagement Matrix
 
+This table summarizes all of the combinations of PFro Status and VBP Status.
+
+```{r}
+
+# Import the Global Members Roster of non duplicated list of distinct AHCCCSIDs
+PFroEngagementMatrix <- as_tibble(NAZMmbrshp$AHCCCSID)
+
+# If a Global Member AHCCCSID matches a PFro Member AHCCCSID, then return the "isVBP" value from the PFroSummary, if it does not match, return "NoPFro"
+PFroEngagementMatrix$isVBP <- ifelse(NAZMmbrshp$AHCCCSID %in% PFroSummary_Distinct_byProvider$AHCCCSID, PFroSummary_Distinct_byProvider$isVBP, "NoPFroServices")
+
+# Replace values in the "isVBP" column
+PFroEngagementMatrix$isVBP[PFroEngagementMatrix$isVBP == "isVBP"] <- "Member on VBP Roster"
+PFroEngagementMatrix$isVBP[PFroEngagementMatrix$isVBP == "NotVBP"] <- "Member Not on VBP Roster"
+
+# Did they have PFro Services
+PFroEngagementMatrix$isPFro <- ifelse(NAZMmbrshp$AHCCCSID %in% PFroSummary_Distinct_byProvider$AHCCCSID, "PFroServices", "NoPFroServices") 
+
+PFroEngagementMatrix %>%
+  group_by(isVBP, isPFro) %>%
+  summarise(Count = n())
+
+# Assuming you have a data frame named 'your_table' with columns "value", "isVBP", and "isPFro"
+
+# Group the data by "isVBP" and "isPFro" and then count the occurrences of each combination
+PFroEngagementSummary <- PFroEngagementMatrix %>%
+  group_by(isVBP, isPFro) %>%
+  summarise(Count = n())
+
+write.csv(PFroEngagementMatrix, "./data/output/PFroEngagementMatrix.csv")
+
+# Rename the columns
+colnames(PFroEngagementSummary) <- c("Included_In_VBPMeasure", "Received_PFroService", "n")
+
+write.csv(PFroEngagementSummary, "./data/output/PFroEngagementSummary.csv")
 ```
 
 ```{r}
-#| label: Map
-#| eval: false
-#| include: false
-#| echo: false
-#| warning: false
-#| error: false
 
+# Assuming your_table is the data frame with columns "Included_In_VBPMeasure", "Received_PFroService", and "n"
 
-# Load the zip code data for mapping
-# Replace "path_to_zip_code_data" with the actual path to your zip code data file
-# The file should contain columns "region" (zip code) and "subregion" (name of the area)
-zip_codes_data <- read.csv("./data/data_reference_zip_code_database.csv")
+# Calculate the percentage of the grand total for each combination
+PFroEngagementSummary$Percentage <- PFroEngagementSummary$n / sum(PFroEngagementSummary$n) * 100
 
-# Calculate the count of occurrences for each zip code in PFroSummary data
-zip_counts <- PFroSummary %>%
-  group_by(zipCode) %>%
-  tally()
-
-# Load the zip code data for Arizona
-arizona_zip_codes_data <- zip_codes_data %>%
-  filter(state == "AZ")
-
-# Rename the "zipCode" column in zip_counts to "region" for consistency
-zip_counts <- zip_counts %>%
-  rename(region = zipCode)
-
-# Rename the "zip" column in arizona zip coes data to "region" for consistency
-arizona_zip_codes_data <- arizona_zip_codes_data %>%
-  rename(region = zip)
-
-# Merge the zip code data for Arizona with the counts
-merged_data <- merge(arizona_zip_codes_data, zip_counts, by = "region", all.x = TRUE)
-
-# Create the choropleth map
-ggplot(merged_data, aes(x = longitude, y = latitude, group = "region", fill = n)) +
-  geom_polygon(color = "blue", size = 0.2) +
-  coord_fixed() +
-  labs(title = "Choropleth Map of Zip Code Counts in Arizona",
-       subtitle = "Counts of occurrences for each zip code",
-       fill = "n") +
+# Create a bar plot with percentage of the grand total and x-axis labels at 45-degree angle
+ggplot(PFroEngagementSummary, aes(x = Included_In_VBPMeasure, y = Percentage, fill = Received_PFroService)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = paste0(round(Percentage, 1), "%")), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5, 
+            size = 3.5
+  ) + 
+  labs(title = "PFro Services Received by VBP Members",
+       x = "Included_In_VBPMeasure"
+       ) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +  # Format y-axis as percentage
   theme_minimal() +
-  theme(legend.position = "bottom") +
-  scale_fill_viridis_c()
-    PrimaryDiagnosis,
-    DiagnosisGroupRange,
-    Diagnosis_Group,
-    isVBPQR,
-    Measure,
-    Gap.Status
-  )
-
-write.csv(PFroSummary, "./data/PFroSummary.csv")
-
-
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels at 45 degrees
 ```
+
+
