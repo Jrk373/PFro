@@ -462,7 +462,11 @@ provider_svccode_counts <- provider_svccode_counts %>%
 provider_svccode_counts_filtered <- provider_svccode_counts %>%
   filter(Percentage >= 1)
 
+<<<<<<< HEAD
 # Create the chart 
+=======
+# Create the chart with svccode on the y-axis and the count as a percentage of the grand total on the x-axis, clustered by ProviderName with custom colors
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
 PFro_SvcByProv <- ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = svccode, fill = ProviderName)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Percent of Total Services by Provider",
@@ -472,9 +476,15 @@ PFro_SvcByProv <- ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y
        ) +
   theme_minimal() +
   scale_x_continuous(labels = scales::percent_format(scale = 1)) +
+<<<<<<< HEAD
   scale_fill_viridis_d()  
 
 ## Save Graphics
+=======
+  scale_fill_viridis_d()  # Use the "viridis" color palette for the fill  # Use custom colors for the fill# Rotate x-axis labels at 45 degrees
+
+## Create Graphics
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
 # Set the file path and name for saving the .png file
 Report <- "./data/output/"
 Report_Filename <- "2023-07-26_PFro_SvcByProvider.png"
@@ -497,6 +507,8 @@ The first table is a summary of the services provided, and the amount that was p
 #| echo: true
 #| warning: false
 #| error: false
+
+# Assuming PFroSummary is the data frame with columns "Code_Description", "ProviderName", "svccode", "AHCCCSID", and "AmountPd"
 
 # Calculate the count of Code_Description by ProviderName and svccode
 code_prov_counts <- PFroSummary %>%
@@ -567,9 +579,53 @@ code_prov_counts_filtered <- code_prov_counts_filtered %>%
     `Avg Amount Paid per Person` = AvgCostPerMember
     )
 
+<<<<<<< HEAD
 # Display the final table using kable
 kable(code_prov_counts_filtered, format = "html", caption = "Summary of Services by ProviderName")
 
+=======
+# Add a column that is a count of distinct AHCCCSID for the given svccode
+code_prov_counts_filtered <- code_prov_counts_filtered %>%
+  left_join(
+    PFroSummary %>%
+      group_by(ProviderName, svccode) %>%
+      summarise(Distinct_AHCCCSID = n_distinct(AHCCCSID)),
+    by = c("ProviderName", "svccode")
+  )
+
+# Add a column that calculates the average of the Percentage_of_Grand_Total for each unique ProviderName
+provider_percentage_avg <- code_prov_counts_filtered %>%
+  group_by(ProviderName) %>%
+  summarise(Average_Percentage = mean(as.numeric(gsub("%", "", Percentage_of_Grand_Total))))
+
+# Merge the average percentage data with the main table
+code_prov_counts_filtered <- left_join(code_prov_counts_filtered, provider_percentage_avg, by = "ProviderName")
+
+# Add a column that is an average of Sum_AmountPd by Distinct_AHCCCSID
+code_prov_counts_filtered <- code_prov_counts_filtered %>%
+  group_by(Distinct_AHCCCSID) %>%
+  mutate(Average_AmountPd = mean(as.numeric(gsub("\\$", "", Sum_AmountPd))))
+
+# Format the Average_AmountPd column with a "$" sign and two decimal places
+code_prov_counts_filtered$Average_AmountPd <- paste0("$", format(round(code_prov_counts_filtered$Average_AmountPd, 2), nsmall = 2))
+
+# Rename the columns
+code_prov_counts_filtered <- code_prov_counts_filtered %>%
+  rename(
+    `Provider Name` = ProviderName,
+    `Service Code` = svccode,
+    `Code Description` = Code_Description,
+    `Percent of Grand Total` = Percentage_of_Grand_Total,
+    `Amount Paid` = Sum_AmountPd,
+    `Members Served` = Distinct_AHCCCSID,
+    `Percent of Total` = Average_Percentage,
+    `Amount Paid per Person` = Average_AmountPd
+  )
+
+# Display the final table using kable
+kable(code_prov_counts_filtered, format = "html", caption = "Summary of Services by ProviderName")
+
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
 ```
 
 ### Figure 2: PFro Services by Amount Paid
@@ -600,6 +656,7 @@ provider_svccode_counts_filtered <- sum_by_provider %>%
   filter(Percentage >= 1)
 
 # Create the chart with svccode on the y-axis and the count as a percentage of the grand total on the x-axis, clustered by ProviderName with custom colors
+<<<<<<< HEAD
 PFro_AmntPdByProvider <- 
   ggplot(provider_svccode_counts_filtered, aes(x = Percentage,
                                                y = svccode, 
@@ -613,6 +670,17 @@ PFro_AmntPdByProvider <-
   theme_minimal() +
   scale_x_continuous(labels = scales::percent_format(scale = 1)) +
   scale_fill_viridis_d()
+=======
+PFro_AmntPdByProvider <- ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = svccode, fill = ProviderName)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Amount Paid for PFro Services by Provider",
+       subtitle = "As percent of grand total",
+       x = "Percent of Amount Paid", 
+       y = "svccode") +
+  theme_minimal() +
+  scale_x_continuous(labels = scales::percent_format(scale = 1)) +
+  scale_fill_viridis_d()  # Use the "viridis" color palette for the fill  # Use custom colors for the fill# Rotate x-axis labels at 45 degrees
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
 
 ## Create Graphics
 # Set the file path and name for saving the .png file
@@ -671,6 +739,17 @@ PFro_VBPMemberEngagement <- ggplot(stacked_data, aes(x = count, y = ProviderName
         plot.subtitle = element_text(hjust = 30)
         ) + 
   scale_fill_manual(values = c("#440154", "#FDE725"))
+
+## Create Graphics
+# Set the file path and name for saving the .png file
+Report <- "./data/output/"
+Report_Filename <- "2023-07-26_PFro_VBPMemberEngagement.png"
+
+# Save the ggplot as a .png file
+# Report
+ggsave(file.path(Report, Report_Filename), plot = PFro_VBPMemberEngagement, width = 6, height = 4, dpi = 300)
+
+PFro_VBPMemberEngagement
 
 ## Create Graphics
 # Set the file path and name for saving the .png file
@@ -833,7 +912,11 @@ write.csv(DemoTable_SexByAgeGroup, "./data/output/2023-07-26_DemoTable_SexByAgeG
 Fig_PopPyramid <- ggplot(DemoTable_SexByAgeGroup, aes(x = n, y = reorder(Age_Group, n), fill = sex)) +
   geom_bar(stat = "identity", position = "identity") +
   geom_text(aes(label = abs(n), hjust = ifelse(sex == "Female", -0.2, 1.2)), size = 3) +
+<<<<<<< HEAD
   scale_fill_manual(values = c(Female = "#440154", Male = "#35B779")) +
+=======
+  scale_fill_manual(values = c(Female = "#FFA500", Male = "#000080")) +
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
   facet_wrap(~ sex, scales = "free") +
   labs(
     x = NULL, 
@@ -899,10 +982,29 @@ PFroEngagementSummary <- PFroEngagementMatrix %>%
 # Rename the columns
 colnames(PFroEngagementSummary) <- c("Included In VBPMeasure", "Received PFro Service", "n")
 
+<<<<<<< HEAD
 kable(PFroEngagementSummary, format = "html", caption = "PFro Engagement and VBP Eligibility")
-```
+=======
+write.csv(PFroEngagementSummary, "./data/output/PFroEngagementSummary.csv")
 
+kable(PFroEngagementSummary)
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
+```
+## PFro Involvement in VBP Measures
+
+### Figure 6
+
+<<<<<<< HEAD
 ### Figure 6: PFro Engagement of Eligible VBP Members
+=======
+```{r}
+#| label: Graphic_PFroMemberEngagement
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
 
 This figure maps out the level to which PFro providers have engaged with Alliance members who have been deemed eligible for a HEDIS/NCQA VBP measure according to HC VBPQR.
 
@@ -921,7 +1023,11 @@ PFroEngagementSummary$Percentage <- PFroEngagementSummary$n / sum(PFroEngagement
 write.csv(PFroEngagementSummary, "./data/output/PFroEngagementSummary.csv")
 
 # Create a bar plot with percentage of the grand total and x-axis labels at 45-degree angle
+<<<<<<< HEAD
 PFro_InvlvmtWithVBPMeasures <- ggplot(PFroEngagementSummary, aes(x = `Included In VBPMeasure`, y = Percentage, fill = `Received PFro Service`)) +
+=======
+PFro_InvlvmtWithVBPMeasures <- ggplot(PFroEngagementSummary, aes(x = Included_In_VBPMeasure, y = Percentage, fill = Received_PFroService)) +
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
   geom_bar(stat = "identity", position = "dodge") +
   geom_text(aes(label = paste0(round(Percentage, 3), "%")), 
             position = position_dodge(width = 0.9), 
@@ -929,15 +1035,25 @@ PFro_InvlvmtWithVBPMeasures <- ggplot(PFroEngagementSummary, aes(x = `Included I
             size = 3.5
   ) + 
   labs(title = "PFro Involvement With VBP Measures",
+<<<<<<< HEAD
        subtitle = "By Members Found on Health Choice VBP Roster",
        x = "VBP Quality Roster Status"
+=======
+       subtitle = "By Members Found on Health Choice VBP Roster"
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
        ) +
   scale_y_continuous(labels = scales::percent_format(scale = 1)) +  # Format y-axis as percentage
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
+<<<<<<< HEAD
         axis.title.y = element_blank()
         )+
   scale_fill_viridis_d()  
+=======
+        axis.title = element_blank()
+        )+
+  scale_fill_viridis_d()  # Use the "viridis" color palette for the fill  # Use custom colors for the fill# Rotate x-axis labels at 45 degrees
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
 
 ## Create Graphics
 # Set the file path and name for saving the .png file
@@ -951,9 +1067,15 @@ ggsave(file.path(Report, Report_Filename), plot = PFro_InvlvmtWithVBPMeasures, w
 PFro_InvlvmtWithVBPMeasures
 ```
 
+<<<<<<< HEAD
 ### Table 6: PFro Engagement With Eligible VBP Members
 
 This table is a list of actively enrolled Alliance Members, who are listed on the Health Choice VBP Quality Roster, who have received services from a PFro, and all of the indicators by claim from the PFroSummary. There are multiple claims for 13 individuals. This table is found in the project output folder.
+=======
+### Table 6: PFro Engagement With VBP Members
+
+This table is a list of actively enrolled Alliance Members, who are listed on the Health Choice VBP Quality Roster, who have received services from a PFro, and all of the indicators by claim from the PFroSummary.
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
 
 ```{r}
 #| label: PFroEngagementWithVBPMmbrs
@@ -965,7 +1087,11 @@ This table is a list of actively enrolled Alliance Members, who are listed on th
 
 # Filter the matrix for only individuals on VBP Roster
 PFroEngagementWithVBPMmbrs <- PFroEngagementMatrix |> 
+<<<<<<< HEAD
   filter(isVBP == "VBP Eligible")
+=======
+  filter(isVBP == "Member on VBP Roster")
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
 
 # Rename the column 
 colnames(PFroEngagementWithVBPMmbrs)[colnames(PFroEngagementWithVBPMmbrs) == "value"] <- "AHCCCSID"
@@ -978,8 +1104,14 @@ PFroEngagementWithVBPMmbrs <- merge(x = PFroEngagementWithVBPMmbrs,
 
 PFroEngagementWithVBPMmbrs <- PFroEngagementWithVBPMmbrs |> 
   rename(AHCCCSID = AHCCCSID,
+<<<<<<< HEAD
          `On VBPQR Roster` = isVBP,
          `Received PFro Svc` = isPFro,
+=======
+         `On VBPQR Roster` = isVBP.x,
+         `Received PFro Svc` = isPFro,
+         MemberID = MemberID,
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
          PrimaryId = primaryId,
          `Alliance Provider` = ra,
          `Last names` = lastName,
@@ -1000,10 +1132,22 @@ PFroEngagementWithVBPMmbrs <- PFroEngagementWithVBPMmbrs |>
          `ICD10 Dx Description` = ICD10_Description,
          `ICD10 Dx Group Range` = DiagnosisGroupRange,
          `ICD10 Dx Group` = Diagnosis_Group,
+<<<<<<< HEAD
          `Validated FUH Inpatient Svc` = isIP,
          `Validated AMM Pharmacy Svc` = isADMed,
          `VBP Measure` = SubMeasure.ID,
          `Gap Status` = Gap.Status
+=======
+         `On VBPQR Roster.y` = isVBP.y,
+         `AMM Roster` = isVBP_AMM,
+         `AMM Gap Status` = GapStatus_AMM,
+         `FUH Roster` = isVBP_FUH,
+         `FUH Gap Status` = GapStatus_FUH,
+         `HDO Roster` = isVBP_HDO,
+         `HDO Gap Status` = GapStatus_HDO,
+         `Validated FUH Inpatient Svc` = isIP,
+         `Validated AMM Pharmacy Svc` = isADMed
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
          )
 
 write.csv(PFroEngagementWithVBPMmbrs, "./data/output/PFroEngagementWithVBPMembers.csv")
@@ -1011,9 +1155,12 @@ write.csv(PFroEngagementWithVBPMmbrs, "./data/output/PFroEngagementWithVBPMember
 ```
 
 ### Figure 7:
+<<<<<<< HEAD
 
 This figure visualizes the engagement of only those members who have been deemed eligible for a HEDIS/NCQA VBP measure, who have also received services from a PFro. All of the claims are included for each of the 13 affected individuals. Service Codes with less than 1% of grand total were excluded. Service COed T1016 has been removed because its volume obscures other clinical measures.
 
+=======
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
 ```{r}
 #| label: Graphic_PFro Engagement With VBP Members
 #| eval: true
@@ -1022,6 +1169,10 @@ This figure visualizes the engagement of only those members who have been deemed
 #| warning: false
 #| error: false
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
 # Calculate the count of svccode by ProviderName
 provider_svccode_counts <- PFroEngagementWithVBPMmbrs %>%
   count(`Alliance PFro Provider`, `Service Code`)
@@ -1036,8 +1187,12 @@ provider_svccode_counts <- provider_svccode_counts %>%
 
 # Filter to keep only svccodes accounting for at least 1% of the grand total
 provider_svccode_counts_filtered <- provider_svccode_counts %>%
+<<<<<<< HEAD
   filter(Percentage >= 1) |> 
   filter(`Service Code` != "T1016")
+=======
+  filter(Percentage >= 1)
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
 
 # Create the chart with svccode on the y-axis and the count as a percentage of the grand total on the x-axis, clustered by ProviderName with custom colors
 Graphic_PFroEngagementWithVBPMmbrs <- ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = `Service Code`, fill = `Alliance PFro Provider`)) +
@@ -1068,7 +1223,11 @@ To be continued...
 
 ```{r}
 #| label: Gap Status of Member with PFro Services
+<<<<<<< HEAD
 #| eval: false
+=======
+#| eval: true
+>>>>>>> a16b2083807dde6c9074c578e879cb701a388bf8
 #| include: true
 #| echo: true
 #| warning: false
