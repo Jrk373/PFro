@@ -31,6 +31,7 @@ library(knitr)
 library(kableExtra)
 library(scales)
 library(tidyr)
+library(formattable)
 
 # table for inline code
 InLineCode <- data.frame(
@@ -575,7 +576,7 @@ code_prov_counts_filtered <- code_prov_counts %>%
 
 # Reorder the columns to have ProviderName first, followed by svccode
 code_prov_counts_filtered <- code_prov_counts_filtered %>%
-  select(ProviderName, svccode, Code_Description, Percentage_of_Grand_Total)
+  select(ProviderName, svccode, n, Code_Description, Percentage_of_Grand_Total)
 
 # Sort the table by ProviderName in ascending order
 code_prov_counts_filtered <- code_prov_counts_filtered %>%
@@ -590,12 +591,6 @@ amount_paid_sum <- PFroSummary %>%
 # Join the summarized Amount Paid data with the filtered table
 code_prov_counts_filtered <- left_join(code_prov_counts_filtered, amount_paid_sum, by = c("Code_Description", "ProviderName"))
 
-# Format the Percentage_of_Grand_Total column with two decimal places and a "%" symbol
-code_prov_counts_filtered$Percentage_of_Grand_Total <- sprintf("%.2f%%", code_prov_counts_filtered$Percentage_of_Grand_Total)
-
-# Format the Sum_AmountPd column with a "$" sign and no decimal places
-code_prov_counts_filtered$Sum_AmountPd <- paste0("$", round(code_prov_counts_filtered$Sum_AmountPd, 0))
-
 # Add a column that is a count of distinct AHCCCSID for the given svccode
 code_prov_counts_filtered <- code_prov_counts_filtered %>%
   left_join(
@@ -605,37 +600,31 @@ code_prov_counts_filtered <- code_prov_counts_filtered %>%
     by = c("ProviderName", "svccode")
   )
 
-## Pick up here. DOn't think too hard.
+# Do math to determine avg cost per member per provider per code
+code_prov_counts_filtered$AvgCostPerMember <- code_prov_counts_filtered$Sum_AmountPd / code_prov_counts_filtered$Distinct_AHCCCSID
 
+# Format the number as currency with commas for thousands and two decimal places
+code_prov_counts_filtered$Sum_AmountPd <- currency(code_prov_counts_filtered$Sum_AmountPd, symbol = "$", digits = 0, big.mark = ",")
 
-# Add a column that calculates the average of the Percentage_of_Grand_Total for each unique ProviderName
-provider_percentage_avg <- code_prov_counts_filtered %>%
-  group_by(ProviderName) %>%
-  summarise(Average_Percentage = mean(as.numeric(gsub("%", "", Percentage_of_Grand_Total))))
+# Format the number as currency with commas for thousands and two decimal places
+code_prov_counts_filtered$AvgCostPerMember <- currency(code_prov_counts_filtered$AvgCostPerMember, symbol = "$", digits = 0, big.mark = ",")
 
-# Merge the average percentage data with the main table
-code_prov_counts_filtered <- left_join(code_prov_counts_filtered, provider_percentage_avg, by = "ProviderName")
+# Format the Percentage_of_Grand_Total column with two decimal places and a "%" symbol
+code_prov_counts_filtered$Percentage_of_Grand_Total <- sprintf("%.2f%%", code_prov_counts_filtered$Percentage_of_Grand_Total)
 
-# Add a column that is an average of Sum_AmountPd by Distinct_AHCCCSID
-code_prov_counts_filtered <- code_prov_counts_filtered %>%
-  group_by(Distinct_AHCCCSID) %>%
-  mutate(Average_AmountPd = mean(as.numeric(gsub("\\$", "", Sum_AmountPd))))
-
-# Format the Average_AmountPd column with a "$" sign and two decimal places
-code_prov_counts_filtered$Average_AmountPd <- paste0("$", format(round(code_prov_counts_filtered$Average_AmountPd, 2), nsmall = 2))
 
 # Rename the columns
 code_prov_counts_filtered <- code_prov_counts_filtered %>%
   rename(
     `Provider Name` = ProviderName,
     `Service Code` = svccode,
+    `Number of Services` = n,
     `Code Description` = Code_Description,
     `Percent of Grand Total` = Percentage_of_Grand_Total,
     `Amount Paid` = Sum_AmountPd,
     `Members Served` = Distinct_AHCCCSID,
-    `Percent of Total` = Average_Percentage,
-    `Amount Paid per Person` = Average_AmountPd
-  )
+    `Avg Amount Paid per Person` = AvgCostPerMember
+    )
 
 # Display the final table using kable
 kable(code_prov_counts_filtered, format = "html", caption = "Summary of Services by ProviderName")
