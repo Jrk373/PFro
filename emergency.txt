@@ -1,7 +1,7 @@
 ---
 title: "Peer and Family Run Organization Activity in Northern Arizona"
 author: 
-  name: "John Ryan Kivela, MA & Victoria Tewa, LPCC"
+  name: "John Ryan Kivela, MA"
   email: "Ryan.Kivela@narbha.org"
   affiliation: "The Alliance ACO"
 date: today
@@ -51,13 +51,12 @@ PFro provider candidates were identified by Alliance ACO Executive leadership in
 
 The Alliance has researched the prevalence and impact of PFros on members of the Alliance ACO. The results of this research will drive future decision making as we incorporate PFros into the Alliance ACO. 
 
-Initial data was collected in collaboration with Alliance ACO, The Narbha Institute, and Health Choice BCBSAZ. By using the methodology outlined below, we found that 0.2%, or 273 of the 96,278 Alliance ACO members received peer and family run services in the 2022 calendar year. Of those, 0.01%, or 13 people were deemed eligible for a HEDIS/NCQA[^_] VBP measure in the 2023 VBP measurement year.
+Initial data was collected in collaboration with Alliance ACO, The Narbha Institute, and Health Choice BCBSAZ. We used the methodology outlined below to find that 273 of the 96,278, or 0.20%, of the total Alliance ACO membership are receiving peer and family run services. Of those receiving PFro services, 13, or 0.01% were deemed eligible for HEDIS/NCQA VBP memasures[^].
 
-[]HEDIS ncqa reference
+[]HEDIS reference
 
 # Method
 
-Now, let us take you on a journey to how we reached these conclusions.
 
 Data elements used to drive fair and equitable decisions were:
 
@@ -588,9 +587,9 @@ provider_svccode_counts_filtered <- provider_svccode_counts %>%
 PFro_SvcByProv <- ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = svccode, fill = ProviderName)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Percent of Total Services by Provider",
-       subtitle = "Service Codes by Provider for less than 1% removed",
-       x = "Percentage of All Services", 
-       y = "Service Code"
+       subtitle = "Service Codes less than 1% removed",
+       x = "Percentage", 
+       y = "svccode"
        ) +
   theme_minimal() +
   scale_x_continuous(labels = scales::percent_format(scale = 1)) +
