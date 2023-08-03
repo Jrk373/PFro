@@ -51,7 +51,7 @@ PFro provider candidates were identified by Alliance ACO executive leadership in
 
 The Alliance has researched the prevalence and impact of PFros on members of the Alliance ACO. The results of this research will drive future decision making as we incorporate PFros into the Alliance ACO. 
 
-Initial data was collected in collaboration with the Alliance ACO, The Narbha Institute, and Health Choice BCBSAZ. By using the methodology outlined below, we found that 0.2%, or 273 of the 96,278 Alliance ACO members received peer and family run services in the 2022 calendar year. Of those, 0.01%, or 13 people have been deemed eligible for a HEDIS/NCQA[^1] VBP measure in the 2023 VBP measurement year.
+Initial data was collected in collaboration with the Alliance ACO, The Narbha Institute, and Health Choice BCBSAZ. By using the methodology outlined below, we found that 0.002%, or 183 of the 103,487 Alliance ACO members received peer and family run services in the 2022 calendar year. Of those, 0.0002%, or 13 people have were deemed eligible for a HEDIS/NCQA[^1] VBP measure in the 2022 VBP measurement year. The greatest number of non case management services delivered respite services (S5150), family support services (S5110), and peer support services (H0038).
 
 [^1]: NCQA. (2023). *HEDIS and Performance Measurement*. https://www.ncqa.org/hedis/
 
@@ -61,6 +61,8 @@ Now, let us take you on a journey to how we reached these conclusions.
 
 ## Data Sources
 
+The Alliance ACO has a demonstrated secure, systematic approach to data acquisition, preservation, and production. The Alliance has worked in tandem with HC BCBSAZ software developers, quality management and clinical professionals, and finance administration to ensure the most up to date and accurate data is used.  
+
 Data elements used to drive fair and equitable decisions were:
 
 -   Member Enrollment data (as of 7/21/23)
@@ -69,8 +71,9 @@ Data elements used to drive fair and equitable decisions were:
 -   Behavioral health claims (1/1/22 - 12/31/22)
     -   Service utilization 
     -   Finances
+-   Value Based Purchasing Quality Roster (as of 03/23/23)
 -   Value Based Purchasing Quality Roster (as of 7/21/23)
--   FUH7 and AMM validation data
+-   FUH7 and AMM2 validation data
 
 These elements create a comprehensive dataset from which multiple variables can be used to create any desired combination of analysis tables. Variables include demographics, service utilization data, diagnostic groupings, financial spend, and value based measures.
 
@@ -114,7 +117,7 @@ WHERE
 dm.LineOfBusiness = 'ArizonaACC'
 ```
 
-Then the HC Global Member Roster is filtered to include Alliance ACO members only by filtering for residential addresses in Northern Arizona, and auto-assignments to Alliance Providers. For this study, we include members who were enrolled as of 1/1/22, and who were not disenrolled until at least after 1/1/23. This is called the Alliance ACO Member Roster.
+Then, the HC Global Member Roster is filtered to include Alliance ACO members only by filtering for residential addresses in Northern Arizona, and auto-assignments to Alliance Providers. For this study, we include members who were enrolled as of 1/1/22, and who were not disenrolled until at least after 1/1/23. In other words, the member was enrolled for all of the 2022 calendar year, which coincides with the date range of HEDIS/NCQA guidelines. This is called the Alliance ACO Member Roster.
 
 ```{r}
 #| label: Load Global Members Roster
@@ -333,11 +336,11 @@ We import 2 sets of VBPQR data:
 -   Report date: 3/23/23, for historical comparison
 -   Report date: 7/21/23, for current activity (*To be used in future research*)
 
-The report from 3/23/23 contains all VBP QR data for the 2022measurement year (1/1/22-12/31/22), and provides the basis for historical comparisons.
+The report from 3/23/23 contains all VBP QR data for the 2022 measurement year (1/1/22-12/31/22), and provides the basis for historical comparisons.
 
-This 7/21/23 report gives us the most recently available VBPQR data in order to have insight into the members' needs today.
+The report from 7/21/23 gives us the most recently available VBPQR data in order to have insight into the members' needs today.
 
-It should be noted that some members are listed more than once on the HC VBPQR for the same measure, sometime with different gap statuses. This inflates the data by only 3 records (3 table rows).
+It should be noted that some members are listed more than once on the 2023 HC VBPQR for the same measure, sometime with different gap statuses. This inflates the data by only 3 records (3 table rows). There were no duplicates in the 2022 roster.
 
 [^3]: Kivela, J.R. (July, 2023). Value Based Purchasing Report. *The Northern Arizona Regional Behavioral Health Alliance*.
 
@@ -405,7 +408,7 @@ PFroActivity_Current <- merge(x = PFroActivity,
 
 Then, we add an indicator for Alliance ACO members who had a valid FUH7 inpatient service that would qualify them for the FUH7 VBP Measure. 
 
-The FUH7 data is for claims that were authorized and paid for the measurement year 2023-01-01 to 2023-12-31. While the year is out of sync with our historical PFro Activity data set (2022-01-01 to 20232-12-31), the more current data from our active VBP Validation process gives us a better picture of the member's needs today.
+This is largely for very near *future research*. The FUH7 data is for claims that were authorized and paid for the measurement year 2023-01-01 to 2023-12-31. While the year is out of sync with our historical PFro Activity data set (2022-01-01 to 20232-12-31), the more current data from our active VBP Validation process gives us a better picture of the member's needs today.
 
 ```{r}
 #| label: Add inpatient indicator
@@ -430,9 +433,9 @@ PFroActivity <- PFroActivity %>%
 
 Then, we add another indicator to the PFro Activity dataset for Alliance ACO members who had a valid AMM antidepressant medication prescription that would qualify them for the AMM VBP Measure. 
 
-We use the AMM Validation PBM claims data to identify any Alliance ACO members with a potentially eligible AMM pharmacy claim according to HC claims that have been approved and paid. This AMM data is for claims that were authorized and paid for the measurement year Intake Period 2021-05-01 to 2022-04-30.
+Again, this is largely for *future research*. We use the AMM Validation PBM claims data to identify any Alliance ACO members with a potentially eligible AMM pharmacy claim according to HC claims that have been approved and paid. This AMM data is for claims that were authorized and paid for the HEDIS/NCQA 2023 measurement year Intake Period (2021-05-01 to 2022-04-30).
 
-The AMM Validation model is still under development at the time of this writing. However, the core set of PBMClaims data for antidepressant medications is fully valid. Completion of the model will give us more insight, but this is enough to be getting on with.
+The AMM Validation model is still under development at the time of this writing. However, the core dataset of PBMClaims data for antidepressant medications is fully valid. Completion of the model will give us more insight, but this is enough to be getting on with.
 
 ```{r}
 #| label: Add antidepressant med indicator
@@ -464,7 +467,13 @@ Some examples of these specialized datasets are contained the analysis below:
 
 -   Summary of All PFro activity
 -   Unduplicated list of members served by PFro    
--   PFro Engagement Matrix    
+-   PFro Engagement Matrix
+
+Thank you for joining us on this journey. Now, enjoy the analysis.
+
+Yours,
+
+The Alliance
 
 ```{r}
 #| label: Dial in the data set
@@ -648,7 +657,7 @@ PFro_SvcByProv <- ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Percent of Total Services by Provider",
        subtitle = "Service Codes by Provider for less than 1% removed",
-       x = "Percentage of All Services", 
+       x = "Percentage of All Services, CY 2022", 
        y = "Service Code"
        ) +
   theme_minimal() +
@@ -673,7 +682,7 @@ This is a visualization of the percent of total amount paid to each PFro during 
 
 In this chart, each bar represents a portion of all of the money paid for services delivered from all providers. For example, MIKID's provision of 2,950 Case Management (T1016) services, for the amount of $140,986, accounted for 30.78% of all of the PFro services, and 12% of all of the money paid for PFro services during the 2022 calendar year. 
 
-This was filtered to only include service codes that accounted for at least 1% of the total.
+Combinations of provider and service code that accounted for less than 1% of the total services delivered were excluded from the analysis.
 
 ```{r}
 #| label: Service by cost
@@ -716,7 +725,7 @@ PFro_AmntPdByProvider <-
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Amount Paid for PFro Services by Provider",
        subtitle = "Services Less Than 1% Removed",
-       x = "Percent of Grand Total Paid", 
+       x = "Percent of Grand Total Paid, CY 2022", 
        y = "Service Code") +
   theme_minimal() +
   scale_x_continuous(labels = scales::percent_format(scale = 1)) +
@@ -738,13 +747,13 @@ PFro_AmntPdByProvider
 
 ### Figure 3: PFro Member Engagement
 
-This is a visualization of the the Alliance members who received services with a PFro during the calendar year 2022. The bar chart indicates if the member was eligible for a VBP measure, or not.
+This is a visualization of the Alliance ACO members who received services with a PFro during the 2022 calendar year. The bar chart indicates if the member was eligible for a HEDIS/NCQA VBP measure, or not.
 
-For example, of the 53 members that MIKID served during the calendar year 2022, 1 (.8% of all members) was deemed eligible for a VBP Measure by the Health Choice VBPQR, and 52 (42% of all members) were not.
+For example, of the 53 members that MIKID served during the 2022 calendar year, 1 (0.8% of all members) was deemed eligible for a VBP Measure by the Health Choice VBPQR, and 52 (42% of all members) were not.
 
-For this assessment, T1016 (Case Management) was excluded because the volume obscures other clinical services.
+For this assessment, T1016 (Case Management) was excluded because the volume of services obscures other clinical services.
 
-This was filtered to only include service codes that accounted for at least 1% of the total.
+Combinations of provider and service code that accounted for less than 1% of the total services delivered were excluded from the analysis.
 
 ```{r}
 #| label: Engagement of Distinct Members
@@ -774,7 +783,7 @@ PFro_VBPMemberEngagement <- ggplot(stacked_data, aes(x = count, y = ProviderName
   geom_bar(stat = "identity") +
   labs(title = "Current PFro Engagement with Alliance ACO Members",
        subtitle = "Service Code T1016 Removed",
-       x = "Count of Distinct MemberID",
+       x = "Count of Distinct MemberID, CY2022",
        y = "ProviderName",
        fill = "VBP Eligibility"
        ) +
@@ -801,11 +810,11 @@ PFro_VBPMemberEngagement
 
 ### Table 2: PFro Member Engagement
 
-This table contains the distribution of distinct Alliance members, who received a PFro service, and whether or not they were deemed eligible for a VBP measure according to the HC VBP Quality Roster during the 2022 VBP measurement year.
+This table contains the distribution of distinct Alliance members, who received a PFro service, and whether or not they were deemed eligible for a HEDIS/NCQA VBP measure according to the HC VBP Quality Roster during the 2022 VBP measurement year.
 
-T1016 (Case Management) was excluded because the volume obscures other clinical services.
+T1016 (Case Management) was excluded because the volume of services obscures other clinical services.
 
-Only includes service codes that accounted for at least 1% of the total.
+Combinations of provider and service code that accounted for less than 1% of the total services delivered were excluded from the analysis.
 
 ```{r}
 #| label: Second Table
@@ -828,7 +837,7 @@ colnames(stacked_data)[colnames(stacked_data) == "isVBP"] <- "VBP Eligible"
 colnames(stacked_data)[colnames(stacked_data) == "count"] <- "Members"
 
 # Create a table for the VBP engagement
-kable(stacked_data, format = "html", caption = "PFro Engagement of Alliance Members")
+kable(stacked_data, format = "html", caption = "PFro Engagement of Alliance Members, CY 2022")
 
 ```
 ### Table 3: PFro VBP Engagement Matrix
@@ -837,7 +846,7 @@ This table demonstrates the number of Alliance ACO members who have received PFr
 
 During the 2023 measurement year, of the total Alliance ACO membership of 103,487 members, 202 have received services from a PFro. 19 of those 202 members were deemed eligible for a HEDIS/NCQA VBP measure. 
 
-In other words, PFro service providers are currently providing care to 0.001% of the Alliance ACO membership, including 0.0002% of VBP eligible members.
+In other words, PFro service providers are currently providing care to 0.2% of the Alliance ACO membership, including 0.002% of VBP eligible members.
 
 ```{r}
 #| label: PFro Engagement Matrix
@@ -873,21 +882,21 @@ SummaryOfMembers <- sum(PFroEngagementSummary$Count)
 PFroEngagementSummary$PercentofAllAllianceMembers <- PFroEngagementSummary$Count / SummaryOfMembers
 
 # Format the Percentage_of_Grand_Total column with two decimal places and a "%" symbol
-PFroEngagementSummary$PercentofAllAllianceMembers <- sprintf("%.4f%%", PFroEngagementSummary$PercentofAllAllianceMembers)
+# PFroEngagementSummary$PercentofAllAllianceMembers <- sprintf("%.4f%%", PFroEngagementSummary$PercentofAllAllianceMembers)
 
 # Rename the columns
 colnames(PFroEngagementSummary) <- c("Included In VBPMeasure", "Received PFro Service", "Members", "Percent of All Alliance Members")
 
 write.csv(PFroEngagementSummary, "./data/output/PFroEngagementSummary.csv")
 
-kable(PFroEngagementSummary, format = "html", caption = "PFro Engagement and VBP Eligibility")
+kable(PFroEngagementSummary, format = "html", caption = "PFro Engagement and VBP Eligibility, CY 2022")
 
 
 ```
 
-### Figure 6: PFro Engagement of Eligible VBP Members
+### Figure 4: PFro Engagement of Eligible VBP Members
 
-This figure maps out the level to which PFro providers have engaged with Alliance members who have been deemed eligible for a HEDIS/NCQA VBP measure according to HC VBPQR.
+This figure is a description of the level to which PFro providers have engaged with Alliance members who have been deemed eligible for a HEDIS/NCQA VBP measure according to HC VBPQR.
 
 ```{r}
 #| label: Graphic_PFroMemberEngagement
@@ -917,7 +926,7 @@ PFro_InvlvmtWithVBPMeasures <- ggplot(PFroEngagementSummary,
             ) + 
   labs(title = "PFro Involvement With VBP Measures",
        subtitle = "By Members Found on Health Choice VBP Roster",
-       x = "VBP Quality Roster Status"
+       x = "VBP Quality Roster Status, CY 2022"
        ) +
   scale_y_continuous(labels = scales::percent_format(scale = 1)) + 
   theme_minimal() +
@@ -938,7 +947,7 @@ ggsave(file.path(Report, Report_Filename), plot = PFro_InvlvmtWithVBPMeasures, w
 PFro_InvlvmtWithVBPMeasures
 ```
 
-### Figure 4: PFro Member Engagement by County
+### Figure 5: PFro Member Engagement by County
 
 This figure demonstrates the prevalence of PFro Services throughout the Northern Region. This is a count of distinct members receiving PFro services.
 
@@ -997,11 +1006,11 @@ PFro_AllMemberEngagementByCounty
 
 ```
 
-### Figure 5: Alliance Population Pyramid
+### Figure 6: Alliance Population Pyramid
 
 This figure demonstrates the the sex and age groupings of the Alliance Members who have received services from a PFro.
 
-*Currently having an issue getting the age groupings to sort correctly. They don't obey normal ordinal rules because they are text, not numbers.*
+*Note: Currently having an issue getting the age groupings to sort correctly. They don't obey normal ordinal rules because they are text, not numbers.*
 
 ```{r}
 #| label: SexByAgeGroup
@@ -1074,7 +1083,7 @@ Fig_PopPyramid <- ggplot(DemoTable_SexByAgeGroup, aes(x = n, y = reorder(Age_Gro
     y = NULL, 
     fill = "Member Sex",
     title = "PFro Member Engagement by Gender and Age Group",
-    subtitle = "July 27, 2023",
+    subtitle = "Enrolled during 2022 calendar year",
     caption = "Source: BCBSAZ Global Members, Extracted 2023-07-26")  +
   theme_classic() +
   theme(
@@ -1098,7 +1107,7 @@ Fig_PopPyramid
 
 ### Table 4: PFro Engagement With Eligible VBP Members
 
-This table is a list of actively enrolled Alliance Members, who are listed on the Health Choice VBP Quality Roster, who have received services from a PFro, and all of the indicators by claim from the PFroSummary. There are multiple claims for 13 individuals. This table is found in the project output folder.
+This table is a list of actively enrolled Alliance Members, who are listed on the Health Choice VBP Quality Roster and received services from a PFro, and all of the indicators, by claim, from the PFroSummary. There are multiple claims for 13 individuals. This table is found in the project output folder.
 
 ```{r}
 #| label: PFroEngagementWithVBPMmbrs
@@ -1157,7 +1166,11 @@ write.csv(PFroEngagementWithVBPMmbrs, "./data/output/PFroEngagementWithVBPMember
 
 ### Figure 7: Provider Engagement with VBP Eligible Members as Percent of Grand Total of Services
 
-This figure visualizes the engagement of only those members who have been deemed eligible for a HEDIS/NCQA VBP measure, who have also received services from a PFro. All of the claims are included for each of the 13 affected individuals. Service Codes with less than 1% of grand total were excluded. Service COed T1016 has been removed because its volume obscures other clinical measures.
+This figure visualizes the engagement of only those members who have been deemed eligible for a HEDIS/NCQA VBP measure according to the HC VBPQR, who have also received services from a PFro. All of the claims are included for each of the 13 affected individuals. 
+
+Combinations of provider and service code that accounted for less than 1% of the total services delivered were excluded from the analysis. 
+
+Service code T1016 (Case Management) has been removed because its volume of service obscures other clinical measures.
 
 ```{r}
 #| label: Graphic_PFro Engagement With VBP Members
@@ -1189,7 +1202,7 @@ Graphic_PFroEngagementWithVBPMmbrs <- ggplot(provider_svccode_counts_filtered, a
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "PFro Engagement With VBP Members",
        subtitle = "As percent of grand total",
-       x = "Percent of Total Services", 
+       x = "Percent of Total Services, CY 2022", 
        y = "Service Code") +
   theme_minimal() +
   scale_x_continuous(labels = scales::percent_format(scale = 1))+
