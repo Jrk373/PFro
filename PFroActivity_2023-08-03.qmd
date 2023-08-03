@@ -1,7 +1,7 @@
 ---
 title: "Peer and Family Run Organization Activity in Northern Arizona"
 author: 
-  name: "John Ryan Kivela, MA & Victoria Tewa, LPCC"
+  name: "John Ryan Kivela, MA & Victoria Tewa, LPC"
   email: "Ryan.Kivela@narbha.org"
   affiliation: "The Alliance ACO"
 date: today
@@ -76,7 +76,76 @@ These elements create a comprehensive dataset from which multiple variables can 
 
 ## Data Preparation
 
-First we extracted all behavioral health claims for the 2022 VBP Measurement Year (1/1/2022-12/31/2022) from the BCBSAZ-Health Choice data warehouse that were delivered by key PFros in the Health Choice network.This data was extracted on 7/27/23. This dataset is called the PFro BH Claims.
+### Alliance ACO Member Roster
+
+First, we extract the current member roster from BCBSAZ Health Choice data warehouse. This roster was pulled on 7/21/23. This original Health Choice Global Member Roster includes all HCA members in the Arizona ACC health plan, regardless of location or enrollment status.
+
+```{sql}
+#| label: Member Roster Pull
+#| eval: false
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+-- This is the code to extract Alliance ACO members from HCA data warehouse
+-- Updated 5/2/23 by JRK
+
+SELECT dm.primaryId
+	, dm.ahcccsId
+	, cid.lastName
+	, cid.firstName
+	, cid.sex
+	, cid.dob
+	, cid.zipCode
+	, da.resCountyName
+	, dm.bhhShortname
+	, dm.bhhEffectiveDate
+	, dm.lineOfBusiness
+	, dm.bhc
+	, dm.disenrollmentDate
+
+
+FROM 
+globalMembers.dbo.dailyMembershipAllArizonaEnrollments dm
+LEFT JOIN globalMembers.dbo.clientIdPlus cid ON dm.primaryId = cid.primaryId
+LEFT JOIN globalMembers.dbo.dailyMembershipAllArizonaAddresses da ON dm.primaryId = da.primaryId
+
+WHERE
+dm.LineOfBusiness = 'ArizonaACC'
+```
+
+Then the HC Global Member Roster is filtered to include Alliance ACO members only by filtering for residential addresses in Northern Arizona, and auto-assignments to Alliance Providers. For this study, we include members who were enrolled as of 1/1/22, and who were not disenrolled until at least after 1/1/23. This is called the Alliance ACO Member Roster.
+
+```{r}
+#| label: Load Global Members Roster
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+ 
+GlblMmbrshp <- read_xlsx("./data/data_original_glblmbrs_2023-07-26_globalMembersRoster.xlsx", sheet = "Sheet1")
+
+# Calculate active members based on BCBSAZ auto-enrollment
+NAZMmbrshp <- GlblMmbrshp |>
+  filter(resCountyName %in% AZ_County_Map) |>
+  filter(bhhShortname %in% Provider_ShortName) |>
+  filter(disenrollmentDate > as.Date("2022-12-31") | is.na(disenrollmentDate)) |>
+  filter(bhhEffectiveDate < "2022-12-31") |> 
+  mutate(bhhShortname = 
+           if_else((bhhShortname == "SBH"), "SBHS", 
+              if_else((bhhShortname == "WYGC"), "PH", 
+                bhhShortname)
+           ))
+
+NAZMmbrshp <- NAZMmbrshp |> 
+mutate(Age = as.integer(difftime(Sys.Date(), dob, units = "days") / 365.25))
+
+```
+
+### Peer and Family Run Organization Activity
+
+Next, we extracted all behavioral health claims for the 2022 VBP Measurement Year (1/1/2022-12/31/2022) from the BCBSAZ-Health Choice data warehouse that were delivered by key PFros in the Health Choice network.This data was extracted on 7/27/23. This dataset is called the PFro BH Claims.
 
 ```{sql}
 #| label: BH Claims Pull
@@ -180,76 +249,6 @@ PFroBHClaims <- PFroBHClaims |>
 
 ```
 
-### Alliance ACO Member Roster
-
-Next, we extract the current member roster from BCBSAZ Health Choice data warehouse. This roster was pulled on 7/21/23. This original Health Choice Global Member Roster includes all HCA members in the Arizona ACC health plan, regardless of location or enrollment status.
-
-```{sql}
-#| label: Member Roster Pull
-#| eval: false
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
--- This is the code to extract Alliance ACO members from HCA data warehouse
--- Updated 5/2/23 by JRK
-
-SELECT dm.primaryId
-	, dm.ahcccsId
-	, cid.lastName
-	, cid.firstName
-	, cid.sex
-	, cid.dob
-	, cid.zipCode
-	, da.resCountyName
-	, dm.bhhShortname
-	, dm.bhhEffectiveDate
-	, dm.lineOfBusiness
-	, dm.bhc
-	, dm.disenrollmentDate
-
-
-FROM 
-globalMembers.dbo.dailyMembershipAllArizonaEnrollments dm
-LEFT JOIN globalMembers.dbo.clientIdPlus cid ON dm.primaryId = cid.primaryId
-LEFT JOIN globalMembers.dbo.dailyMembershipAllArizonaAddresses da ON dm.primaryId = da.primaryId
-
-WHERE
-dm.LineOfBusiness = 'ArizonaACC'
-```
-
-Then the HC Global Member Roster is filtered to include Alliance ACO members only by filtering for residential addresses in Northern Arizona, and auto-assignments to Alliance Providers. This is called the Alliance ACO Member Roster
-
-```{r}
-#| label: Load Global Members Roster
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
- 
-GlblMmbrshp <- read_xlsx("./data/data_original_glblmbrs_2023-07-26_globalMembersRoster.xlsx", sheet = "Sheet1")
-
-# Calculate active members based on BCBSAZ auto-enrollment
-NAZMmbrshp <- GlblMmbrshp |> 
-  #filter(disenrollmentDate == "NULL") |> 
-  filter(resCountyName %in% AZ_County_Map) |>
-  filter(bhhShortname %in% Provider_ShortName) |>
-  filter(disenrollmentDate == "NULL") |> 
-  mutate(bhhShortname = 
-           if_else((bhhShortname == "SBH"), "SBHS", 
-              if_else((bhhShortname == "WYGC"), "PH", 
-                bhhShortname)
-           ))
-NAZMmbrshp <- NAZMmbrshp |> 
-mutate(Age = as.integer(difftime(Sys.Date(), dob, units = "days") / 365.25))
-
-# Note: The number of members is higher (250K) than the usual (105K) because disenrolled members are NOT excluded. 
-
-```
-
-### Peer and Family Run Organization Activity
-
 Now, we merge the Alliance ACO Member Roster with the PFro BH Claims records, attaching each behavioral health claim to its respective member information from the roster. The resulting table is a list of actively enrolled Alliance members with PFro behavioral health claims. This dataset is called PFro Activity (aka, "La Tabla Monstrua)". 
 
 This table contains a record of all Alliance ACO members who have received a service from a PFro, the type of service, responsible provider, and other utilization data.
@@ -300,7 +299,7 @@ PFroActivity <- merge(x = PFroActivity,
 
 Then, we add indicators for ICD-10 diagnostic group ranges to the PFro Activity dataset. The Alliance has previously conducted research that indicates Mood Disorder and Anxiety Disorder diagnostic group ranges are more predictive of negative health and system outcomes, like inpatient care and high cost claims. This is a potential target population for future Alliance PFro Providers[^_].
 
-[] predictive modeling study
+[] predictive modeling study reference here
 
 ```{r}
 #| label: Append Dx Group Range to table
@@ -327,14 +326,23 @@ PFroActivity <- merge(x = PFroActivity,
 
 Next, add data from the aggregated Health Choice VBP Quality Roster. The Alliance has thoroughly documented and tested a validation model for the NCQA/HEDIS FUH measure[^3]. One output of that project is an aggregated and cleaned roster containing all of the data from the Health Choice VBP Quality Rosters of ALL of the Alliance Providers. 
 
-Incorporating this data allows us to identify those members who have, and have not, been served by a PFro, who have also been deemed eligible for a VBP measure. This is taken from the 7/21/23 Health Choice VBP Quality Roster report. We use the most recently available VBPQR data in order to have insighjt to the members' needs today.
+Incorporating this data allows us to identify those members who have, and have not, been served by a PFro, who have also been deemed eligible for a VBP measure. 
+
+We import 2 sets of VBPQR data:
+
+-   Report date: 3/23/23, for historical comparison
+-   Report date: 7/21/23, for current activity (*To be used in future research*)
+
+The report from 3/23/23 contains all VBP QR data for the 2022measurement year (1/1/22-12/31/22), and provides the basis for historical comparisons.
+
+This 7/21/23 report gives us the most recently available VBPQR data in order to have insight into the members' needs today.
 
 It should be noted that some members are listed more than once on the HC VBPQR for the same measure, sometime with different gap statuses. This inflates the data by only 3 records (3 table rows).
 
 [^3]: Kivela, J.R. (July, 2023). Value Based Purchasing Report. *The Northern Arizona Regional Behavioral Health Alliance*.
 
 ```{r}
-#| label: Load and merge VBP data
+#| label: Load and merge historical VBP data
 #| eval: true
 #| include: true
 #| echo: true
@@ -342,7 +350,17 @@ It should be noted that some members are listed more than once on the HC VBPQR f
 #| error: false
 
 # Load HC VBPQR
-VBPQR <- read.csv("./data/VBPQR_AllAPsCombined_Cleaned_complete_2023-07-21.csv")
+VBPQR_original <- read.csv("./data/VBP_Rep_Comb_validation_complete_2023-03-23.csv")
+
+VBPQR <- VBPQR_original |> 
+  select(Member.ID,
+         Provider_Shortname,
+         SubMeasure.ID,
+         Numerator) |> 
+  filter(SubMeasure.ID %in% c("AMM2", "FUH7", "HDO")) |> 
+  mutate(Gap.Status = ifelse(Numerator == "0", "OPEN", "CLOSED"))
+  
+  
 
 # Rename the column 
 colnames(VBPQR)[colnames(VBPQR) == "Member.ID"] <- "MemberID"
@@ -353,6 +371,32 @@ VBPQR$AHCCCSID <- substr(VBPQR$MemberID, 4, nchar(VBPQR$MemberID))
 # Merge PFro Activity and VBPQR, keeping all PFroActivity
 PFroActivity <- merge(x = PFroActivity,
                              y = VBPQR,
+                             by = "AHCCCSID",
+                             all.x = TRUE
+                             )
+
+```
+
+```{r}
+#| label: Load and merge current VBP data
+#| eval: false
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+# Load HC VBPQR
+VBPQR_Current <- read.csv("./data/VBPQR_AllAPsCombined_Cleaned_complete_2023-07-21.csv")
+
+# Rename the column 
+colnames(VBPQR_Current)[colnames(VBPQR_Current) == "Member.ID"] <- "MemberID"
+
+# Remove the first 3 characters from MemberID and store in a new column AHCCCSID
+VBPQR_Current$AHCCCSID <- substr(VBPQR_Current$MemberID, 4, nchar(VBPQR_Current$MemberID))
+
+# Merge PFro Activity and VBPQR, keeping all PFroActivity
+PFroActivity_Current <- merge(x = PFroActivity,
+                             y = VBPQR_Current,
                              by = "AHCCCSID",
                              all.x = TRUE
                              )
@@ -570,7 +614,7 @@ kable(code_prov_counts_filtered, format = "html", caption = "Summary of PFro Ser
 
 This is a visualization of the percent of total services delivered to Alliance members by each PFro during the 2022 calendar year. 
 
-In this chart, each bar represents a portion of all services delivered from all providers. For example, MIKID's provision of 2,874 Case Management (T1016) services, accounts for 30.78% of all of the PFro services delivered to Alliance ACO members. 
+In this chart, each bar represents a portion of all services delivered from all providers. For example, MIKID's provision of 2,950 Case Management (T1016) services, accounts for 30% of all of the PFro services delivered to Alliance ACO members. 
 
 Combinations of provider and service code that accounted for less than 1% of the total services delivered were excluded from the analysis.
 
@@ -627,7 +671,7 @@ PFro_SvcByProv
 
 This is a visualization of the percent of total amount paid to each PFro during the 2022 calendar year. 
 
-In this chart, each bar represents a portion of all of the money paid for services delivered from all providers. For example, MIKID's provision of 2,874 Case Management (T1016) services, accounting for 30.78% of all of the PFro services, accounted for X% of all of the money paid for PFro services during the calendar year 2022. 
+In this chart, each bar represents a portion of all of the money paid for services delivered from all providers. For example, MIKID's provision of 2,950 Case Management (T1016) services, for the amount of $140,986, accounted for 30.78% of all of the PFro services, and 12% of all of the money paid for PFro services during the 2022 calendar year. 
 
 This was filtered to only include service codes that accounted for at least 1% of the total.
 
@@ -653,13 +697,19 @@ sum_by_provider <- sum_by_provider %>%
   mutate(Percentage = (Total_AmountPd / grand_total) * 100)
 
 # Filter to keep only svccodes accounting for at least 1% of the grand total
-provider_svccode_counts_filtered <- sum_by_provider %>%
+provider_svccode_counts_filtered_AmtPd <- sum_by_provider %>%
   filter(Percentage >= 1)
+
+# Create a column for percent of total amount paid by provider
+
+AmountPdTotal <- sum(provider_svccode_counts_filtered_AmtPd$Total_AmountPd)
+
+provider_svccode_counts_filtered_AmtPd$PercentOfTotal <- provider_svccode_counts_filtered_AmtPd$Total_AmountPd / AmountPdTotal
 
 # Create the chart with svccode on the y-axis and the count as a percentage of the grand total on the x-axis, clustered by ProviderName with custom colors
 
 PFro_AmntPdByProvider <- 
-  ggplot(provider_svccode_counts_filtered, aes(x = Percentage,
+  ggplot(provider_svccode_counts_filtered_AmtPd, aes(x = Percentage,
                                                y = svccode, 
                                                fill = ProviderName)
          )+
@@ -690,7 +740,7 @@ PFro_AmntPdByProvider
 
 This is a visualization of the the Alliance members who received services with a PFro during the calendar year 2022. The bar chart indicates if the member was eligible for a VBP measure, or not.
 
-For example, of the 53 members that MIKID served during the calendar year 2022, 1 was deemed eligible for a VBP Measure by the Health Choice VBPQR, and 52 were not.
+For example, of the 53 members that MIKID served during the calendar year 2022, 1 (.8% of all members) was deemed eligible for a VBP Measure by the Health Choice VBPQR, and 52 (42% of all members) were not.
 
 For this assessment, T1016 (Case Management) was excluded because the volume obscures other clinical services.
 
@@ -751,9 +801,7 @@ PFro_VBPMemberEngagement
 
 ### Table 2: PFro Member Engagement
 
-This table contains the distribution of distinct Alliance members, who received a PFro service, and whether or not they were deemed eligible for a VBP measure according to the HC VBP Quality Roster during the VBP measurement year 2023.
-
-This assessment uses the most recent data from our active VBP Validation process gives us a better picture of the member's needs today.
+This table contains the distribution of distinct Alliance members, who received a PFro service, and whether or not they were deemed eligible for a VBP measure according to the HC VBP Quality Roster during the 2022 VBP measurement year.
 
 T1016 (Case Management) was excluded because the volume obscures other clinical services.
 
@@ -783,6 +831,112 @@ colnames(stacked_data)[colnames(stacked_data) == "count"] <- "Members"
 kable(stacked_data, format = "html", caption = "PFro Engagement of Alliance Members")
 
 ```
+### Table 3: PFro VBP Engagement Matrix
+
+This table demonstrates the number of Alliance ACO members who have received PFro Services, or not, and if that member was eligible for a HEDIS/NCQA VBP measure.
+
+During the 2023 measurement year, of the total Alliance ACO membership of 103,487 members, 202 have received services from a PFro. 19 of those 202 members were deemed eligible for a HEDIS/NCQA VBP measure. 
+
+In other words, PFro service providers are currently providing care to 0.001% of the Alliance ACO membership, including 0.0002% of VBP eligible members.
+
+```{r}
+#| label: PFro Engagement Matrix
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+# Import the Global Members Roster of non duplicated list of distinct AHCCCSIDs
+PFroEngagementMatrix <- as_tibble(NAZMmbrshp$AHCCCSID)
+
+# If a Global Member AHCCCSID matches a PFro Member AHCCCSID, then return the "isVBP" value from the PFroSummary, if it does not match, return "NoPFro"
+PFroEngagementMatrix$isVBP <- ifelse(NAZMmbrshp$AHCCCSID %in% PFroSummary_Distinct_byProvider$AHCCCSID, PFroSummary_Distinct_byProvider$isVBP, "No VBP, No PFro Svc")
+
+# # Replace values in the "isVBP" column
+# PFroEngagementMatrix$isVBP[PFroEngagementMatrix$isVBP == "isVBP"] <- "Member on VBP Roster"
+# PFroEngagementMatrix$isVBP[PFroEngagementMatrix$isVBP == "NotVBP"] <- "Member Not on VBP Roster"
+
+# Did they have PFro Services
+PFroEngagementMatrix$isPFro <- ifelse(NAZMmbrshp$AHCCCSID %in% PFroSummary_Distinct_byProvider$AHCCCSID, "PFroServices", "NoPFroServices") 
+
+# write to csv
+write.csv(PFroEngagementMatrix, "./data/output/PFroEngagementMatrix.csv")
+
+# Group the data by "isVBP" and "isPFro" and then count the occurrences of each combination
+PFroEngagementSummary <- PFroEngagementMatrix %>%
+  group_by(isVBP, isPFro) %>%
+  summarise(Count = n())
+
+SummaryOfMembers <- sum(PFroEngagementSummary$Count)
+
+PFroEngagementSummary$PercentofAllAllianceMembers <- PFroEngagementSummary$Count / SummaryOfMembers
+
+# Format the Percentage_of_Grand_Total column with two decimal places and a "%" symbol
+PFroEngagementSummary$PercentofAllAllianceMembers <- sprintf("%.4f%%", PFroEngagementSummary$PercentofAllAllianceMembers)
+
+# Rename the columns
+colnames(PFroEngagementSummary) <- c("Included In VBPMeasure", "Received PFro Service", "Members", "Percent of All Alliance Members")
+
+write.csv(PFroEngagementSummary, "./data/output/PFroEngagementSummary.csv")
+
+kable(PFroEngagementSummary, format = "html", caption = "PFro Engagement and VBP Eligibility")
+
+
+```
+
+### Figure 6: PFro Engagement of Eligible VBP Members
+
+This figure maps out the level to which PFro providers have engaged with Alliance members who have been deemed eligible for a HEDIS/NCQA VBP measure according to HC VBPQR.
+
+```{r}
+#| label: Graphic_PFroMemberEngagement
+#| eval: true
+#| include: true
+#| echo: true
+#| warning: false
+#| error: false
+
+# Calculate the percentage of the grand total for each combination
+PFroEngagementSummary$Percentage <- PFroEngagementSummary$Members / sum(PFroEngagementSummary$Members) * 100
+
+# Write to csv
+write.csv(PFroEngagementSummary, "./data/output/PFroEngagementSummary.csv")
+
+# Create a bar plot with percentage of the grand total and x-axis labels at 45-degree angle
+PFro_InvlvmtWithVBPMeasures <- ggplot(PFroEngagementSummary, 
+                                      aes(x = `Included In VBPMeasure`, 
+                                          y = Percentage, 
+                                          fill = `Received PFro Service`)
+                                      ) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = paste0(round(Percentage, 3), "%")), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5, 
+            size = 3.5
+            ) + 
+  labs(title = "PFro Involvement With VBP Measures",
+       subtitle = "By Members Found on Health Choice VBP Roster",
+       x = "VBP Quality Roster Status"
+       ) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.title.y = element_blank()
+        )+
+  scale_fill_viridis_d()
+
+## Create Graphics
+# Set the file path and name for saving the .png file
+Report <- "./data/output/"
+Report_Filename <- "2023-07-26_PFro_InvlvmtWithVBPMeasures.png"
+
+# Save the ggplot as a .png file
+# Report
+ggsave(file.path(Report, Report_Filename), plot = PFro_InvlvmtWithVBPMeasures, width = 6, height = 4, dpi = 300)
+
+PFro_InvlvmtWithVBPMeasures
+```
 
 ### Figure 4: PFro Member Engagement by County
 
@@ -792,7 +946,7 @@ For example, Family Involvement Center provided services to the following number
 
 -   Coconino:   12
 -   Mohave:     1
--   Yavapai:    3
+-   Yavapai:    4
 
 ```{r}
 #| label: County
@@ -942,108 +1096,6 @@ Fig_PopPyramid
 
 ```
 
-## PFro Engagement of VBP Eligible Alliance Members
-
-### Table 3: PFro VBP Engagement Matrix
-
-This table demonstrates the number of Alliance ACO members who have received PFro Services, or not, and if that member was eligible for a HEDIS/NCQA VBP measure.
-
-During the 2023 measurement year, of the total Alliance ACO membership of 96,278 members, 287 have received services from a PFro. 13 of those 287 members were deemed eligible for a HEDIS/NCQA VBP measure. 
-
-In other words, PFro service providers are currently providing care to 0.20% of the Alliance ACO membership, including 0.01% of VBP eligible members.
-
-```{r}
-#| label: PFro Engagement Matrix
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-# Import the Global Members Roster of non duplicated list of distinct AHCCCSIDs
-PFroEngagementMatrix <- as_tibble(NAZMmbrshp$AHCCCSID)
-
-# If a Global Member AHCCCSID matches a PFro Member AHCCCSID, then return the "isVBP" value from the PFroSummary, if it does not match, return "NoPFro"
-PFroEngagementMatrix$isVBP <- ifelse(NAZMmbrshp$AHCCCSID %in% PFroSummary_Distinct_byProvider$AHCCCSID, PFroSummary_Distinct_byProvider$isVBP, "No VBP, No PFro Svc")
-
-# # Replace values in the "isVBP" column
-# PFroEngagementMatrix$isVBP[PFroEngagementMatrix$isVBP == "isVBP"] <- "Member on VBP Roster"
-# PFroEngagementMatrix$isVBP[PFroEngagementMatrix$isVBP == "NotVBP"] <- "Member Not on VBP Roster"
-
-# Did they have PFro Services
-PFroEngagementMatrix$isPFro <- ifelse(NAZMmbrshp$AHCCCSID %in% PFroSummary_Distinct_byProvider$AHCCCSID, "PFroServices", "NoPFroServices") 
-
-# write to csv
-write.csv(PFroEngagementMatrix, "./data/output/PFroEngagementMatrix.csv")
-
-# Group the data by "isVBP" and "isPFro" and then count the occurrences of each combination
-PFroEngagementSummary <- PFroEngagementMatrix %>%
-  group_by(isVBP, isPFro) %>%
-  summarise(Count = n())
-
-# Rename the columns
-colnames(PFroEngagementSummary) <- c("Included In VBPMeasure", "Received PFro Service", "Members")
-
-write.csv(PFroEngagementSummary, "./data/output/PFroEngagementSummary.csv")
-
-kable(PFroEngagementSummary, format = "html", caption = "PFro Engagement and VBP Eligibility")
-
-
-```
-
-### Figure 6: PFro Engagement of Eligible VBP Members
-
-This figure maps out the level to which PFro providers have engaged with Alliance members who have been deemed eligible for a HEDIS/NCQA VBP measure according to HC VBPQR.
-
-```{r}
-#| label: Graphic_PFroMemberEngagement
-#| eval: true
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-# Calculate the percentage of the grand total for each combination
-PFroEngagementSummary$Percentage <- PFroEngagementSummary$Members / sum(PFroEngagementSummary$Members) * 100
-
-# Write to csv
-write.csv(PFroEngagementSummary, "./data/output/PFroEngagementSummary.csv")
-
-# Create a bar plot with percentage of the grand total and x-axis labels at 45-degree angle
-PFro_InvlvmtWithVBPMeasures <- ggplot(PFroEngagementSummary, 
-                                      aes(x = `Included In VBPMeasure`, 
-                                          y = Percentage, 
-                                          fill = `Received PFro Service`)
-                                      ) +
-  geom_bar(stat = "identity", position = "dodge") +
-  geom_text(aes(label = paste0(round(Percentage, 3), "%")), 
-            position = position_dodge(width = 0.9), 
-            vjust = -0.5, 
-            size = 3.5
-            ) + 
-  labs(title = "PFro Involvement With VBP Measures",
-       subtitle = "By Members Found on Health Choice VBP Roster",
-       x = "VBP Quality Roster Status"
-       ) +
-  scale_y_continuous(labels = scales::percent_format(scale = 1)) + 
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        axis.title.y = element_blank()
-        )+
-  scale_fill_viridis_d()
-
-## Create Graphics
-# Set the file path and name for saving the .png file
-Report <- "./data/output/"
-Report_Filename <- "2023-07-26_PFro_InvlvmtWithVBPMeasures.png"
-
-# Save the ggplot as a .png file
-# Report
-ggsave(file.path(Report, Report_Filename), plot = PFro_InvlvmtWithVBPMeasures, width = 6, height = 4, dpi = 300)
-
-PFro_InvlvmtWithVBPMeasures
-```
-
 ### Table 4: PFro Engagement With Eligible VBP Members
 
 This table is a list of actively enrolled Alliance Members, who are listed on the Health Choice VBP Quality Roster, who have received services from a PFro, and all of the indicators by claim from the PFroSummary. There are multiple claims for 13 individuals. This table is found in the project output folder.
@@ -1153,27 +1205,4 @@ Report_Filename <- "2023-07-26_PFro_EngagementWithVBPMmbrs.png"
 ggsave(file.path(Report, Report_Filename), plot = Graphic_PFroEngagementWithVBPMmbrs, width = 6, height = 4, dpi = 300)
 
 Graphic_PFroEngagementWithVBPMmbrs
-```
-
-### Figure 8: Gap Status of Member with PFro Services
-
-To be continued...There are very few members with PFro Services who also were counted for a VBP measure.
-
-```{r}
-#| label: Figure 8
-#| eval: false
-#| include: true
-#| echo: true
-#| warning: false
-#| error: false
-
-GapStatusWithPFroSvcs <- PFroEngagementWithVBPMmbrs |> 
-  select(
-    AHCCCSID,
-    `AMM Roster`,
-    `AMM Gap Status`
-    ) |> 
-  filter(!is.na(`AMM Roster`))
-
-
 ```
