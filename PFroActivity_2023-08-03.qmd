@@ -51,7 +51,7 @@ PFro provider candidates were identified by Alliance ACO executive leadership in
 
 The Alliance has researched the prevalence and impact of PFros on members of the Alliance ACO. The results of this research will drive future decision making as we incorporate PFros into the Alliance ACO. 
 
-Initial data was collected in collaboration with the Alliance ACO, The Narbha Institute, and Health Choice BCBSAZ. By using the methodology outlined below, we found that 0.002%, or 183 of the 103,487 Alliance ACO members received peer and family run services in the 2022 calendar year. Of those, 0.0002%, or 13 people have were deemed eligible for a HEDIS/NCQA[^1] VBP measure in the 2022 VBP measurement year. The greatest number of non case management services delivered respite services (S5150), family support services (S5110), and peer support services (H0038).
+Initial data was collected in collaboration with the Alliance ACO, The Narbha Institute, and Health Choice BCBSAZ. By using the methodology outlined below, we found that 0.2%, or 183 of the 103,487 Alliance ACO members received peer and family run services in the 2022 calendar year. Of those, 0.02%, or 13 people have were deemed eligible for a HEDIS/NCQA[^1] VBP measure in the 2022 VBP measurement year. The greatest number of non case management services to be delivered were respite services (S5150), family support services (S5110), and peer support services (H0038).
 
 [^1]: NCQA. (2023). *HEDIS and Performance Measurement*. https://www.ncqa.org/hedis/
 
@@ -61,19 +61,20 @@ Now, let us take you on a journey to how we reached these conclusions.
 
 ## Data Sources
 
-The Alliance ACO has a demonstrated secure, systematic approach to data acquisition, preservation, and production. The Alliance has worked in tandem with HC BCBSAZ software developers, quality management and clinical professionals, and finance administration to ensure the most up to date and accurate data is used.  
+The Alliance ACO has a secure, systematic approach to data acquisition, preservation, and production. The Alliance has worked in tandem with HC BCBSAZ software developers, quality management and clinical professionals, and finance administration to ensure the most up to date and accurate data is used.  
 
 Data elements used to drive fair and equitable decisions were:
 
--   Member Enrollment data (as of 7/21/23)
+-   Member Enrollment data (as of 07/21/23)
     -   Demographics
     -   Residential information
--   Behavioral health claims (1/1/22 - 12/31/22)
+-   Behavioral health claims (01/1/22 - 12/31/22)
     -   Service utilization 
     -   Finances
 -   Value Based Purchasing Quality Roster (as of 03/23/23)
--   Value Based Purchasing Quality Roster (as of 7/21/23)
--   FUH7 and AMM2 validation data
+-   Value Based Purchasing Quality Roster (as of 07/21/23)
+-   FUH7 validation data (01/1/23 - 07/21/23)
+-   AMM2 validation data (05/01/22 - 04/30/2023)
 
 These elements create a comprehensive dataset from which multiple variables can be used to create any desired combination of analysis tables. Variables include demographics, service utilization data, diagnostic groupings, financial spend, and value based measures.
 
@@ -117,7 +118,7 @@ WHERE
 dm.LineOfBusiness = 'ArizonaACC'
 ```
 
-Then, the HC Global Member Roster is filtered to include Alliance ACO members only by filtering for residential addresses in Northern Arizona, and auto-assignments to Alliance Providers. For this study, we include members who were enrolled as of 1/1/22, and who were not disenrolled until at least after 1/1/23. In other words, the member was enrolled for all of the 2022 calendar year, which coincides with the date range of HEDIS/NCQA guidelines. This is called the Alliance ACO Member Roster.
+Then, the HC Global Member Roster is filtered to only include Alliance ACO members by filtering for residential addresses in Northern Arizona, and auto-assignments to Alliance Providers. For this study, we include members who were enrolled as of 1/1/22, and who were not disenrolled until at least after 1/1/23. In other words, the member was enrolled for all of the 2022 calendar year, which coincides with the date range of HEDIS/NCQA guidelines. This is called the Alliance ACO Member Roster.
 
 ```{r}
 #| label: Load Global Members Roster
@@ -148,7 +149,7 @@ mutate(Age = as.integer(difftime(Sys.Date(), dob, units = "days") / 365.25))
 
 ### Peer and Family Run Organization Activity
 
-Next, we extracted all behavioral health claims for the 2022 VBP Measurement Year (1/1/2022-12/31/2022) from the BCBSAZ-Health Choice data warehouse that were delivered by key PFros in the Health Choice network.This data was extracted on 7/27/23. This dataset is called the PFro BH Claims.
+Next, we extracted all behavioral health claims for the 2022 VBP measurement year (1/1/2022-12/31/2022) from the BCBSAZ-Health Choice data warehouse that were delivered by key PFros in the Health Choice network.This data was extracted on 7/27/23. This dataset is called PFro BH Claims.
 
 ```{sql}
 #| label: BH Claims Pull
@@ -300,9 +301,9 @@ PFroActivity <- merge(x = PFroActivity,
 
 ```
 
-Then, we add indicators for ICD-10 diagnostic group ranges to the PFro Activity dataset. The Alliance has previously conducted research that indicates Mood Disorder and Anxiety Disorder diagnostic group ranges are more predictive of negative health and system outcomes, like inpatient care and high cost claims. This is a potential target population for future Alliance PFro Providers[^_].
+Then, we add indicators for ICD-10 diagnostic group ranges to the PFro Activity dataset. The Alliance has previously conducted research that indicates Mood Disorder and Anxiety Disorder diagnostic group ranges are more predictive of negative health and system outcomes, like inpatient care and high cost claims. This is a potential target population for future Alliance PFro Providers[^3].
 
-[] predictive modeling study reference here
+[^3]: Kivela, J.R. (January 20, 2023). The Predictiveness of Mental Health Diagnostic Groupings on High Cost Claim Frequency. *The Alliance ACO*.
 
 ```{r}
 #| label: Append Dx Group Range to table
@@ -615,7 +616,7 @@ code_prov_counts_filtered <- code_prov_counts_filtered %>%
     )
 
 # Display the final table using kable
-kable(code_prov_counts_filtered, format = "html", caption = "Summary of PFro Services by Service Code")
+kable(code_prov_counts_filtered, format = "html", caption = "Summary of PFro Services by Service Code, CY 2022")
 
 ```
 
@@ -724,7 +725,7 @@ PFro_AmntPdByProvider <-
          )+
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Amount Paid for PFro Services by Provider",
-       subtitle = "Services Less Than 1% Removed",
+       subtitle = "Service Codes by Provider for less than 1% removed",
        x = "Percent of Grand Total Paid, CY 2022", 
        y = "Service Code") +
   theme_minimal() +
@@ -781,8 +782,8 @@ stacked_data <- stacked_data %>%
 
 PFro_VBPMemberEngagement <- ggplot(stacked_data, aes(x = count, y = ProviderName, fill = isVBP)) +
   geom_bar(stat = "identity") +
-  labs(title = "Current PFro Engagement with Alliance ACO Members",
-       subtitle = "Service Code T1016 Removed",
+  labs(title = "PFro Engagement with Alliance ACO Members",
+       subtitle = "Service Codes by Provider for less than 1% removed",
        x = "Count of Distinct MemberID, CY2022",
        y = "ProviderName",
        fill = "VBP Eligibility"
@@ -844,9 +845,9 @@ kable(stacked_data, format = "html", caption = "PFro Engagement of Alliance Memb
 
 This table demonstrates the number of Alliance ACO members who have received PFro Services, or not, and if that member was eligible for a HEDIS/NCQA VBP measure.
 
-During the 2023 measurement year, of the total Alliance ACO membership of 103,487 members, 202 have received services from a PFro. 19 of those 202 members were deemed eligible for a HEDIS/NCQA VBP measure. 
+During the 2022 measurement year, of the total Alliance ACO membership of 103,487 members, 202 have received services from a PFro. 19 of those 202 members were deemed eligible for a HEDIS/NCQA VBP measure. 
 
-In other words, PFro service providers are currently providing care to 0.2% of the Alliance ACO membership, including 0.002% of VBP eligible members.
+In other words, PFro service providers are currently providing care to 0.2% of the Alliance ACO membership, including 0.02% of VBP eligible members.
 
 ```{r}
 #| label: PFro Engagement Matrix
@@ -951,7 +952,7 @@ PFro_InvlvmtWithVBPMeasures
 
 This figure demonstrates the prevalence of PFro Services throughout the Northern Region. This is a count of distinct members receiving PFro services.
 
-For example, Family Involvement Center provided services to the following number of members per county in the calendar year 2022:
+For example, Family Involvement Center provided services to the following number of members per county in the 2022 calendar year:
 
 -   Coconino:   12
 -   Mohave:     1
@@ -983,9 +984,9 @@ summary_table <- summary_table %>%
 PFro_AllMemberEngagementByCounty <- ggplot(data = summary_table, aes(x = fct_reorder(resCountyName, Count_of_Distinct_MemberID, .fun = sum), y = Count_of_Distinct_MemberID, fill = ProviderName)) +
   geom_bar(stat = "identity") +
   labs(title = "Member Engagement by County and Provider",
-       subtitle = "T1016 Removed",
+       subtitle = "Service Codes by Provider for less than 1% removed",
        x = "County",
-       y = "Count of Distinct Members") +
+       y = "Count of Distinct Members, CY 2022") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)
         )+
@@ -1010,14 +1011,14 @@ PFro_AllMemberEngagementByCounty
 
 This figure demonstrates the the sex and age groupings of the Alliance Members who have received services from a PFro.
 
-*Note: Currently having an issue getting the age groupings to sort correctly. They don't obey normal ordinal rules because they are text, not numbers.*
-
 ```{r}
 #| label: SexByAgeGroup
 #| include: true
 #| echo: true
 #| warning: false
 #| error: false
+
+#*Note: Currently having an issue getting the age groupings to sort correctly. They don't obey normal ordinal rules because they are text, not numbers.*
 
 # Create the table for the Population Pyramid
 DemoTable_SexByAgeGroup <- PFroSummary_Distinct_byProvider |> 
@@ -1168,8 +1169,6 @@ write.csv(PFroEngagementWithVBPMmbrs, "./data/output/PFroEngagementWithVBPMember
 
 This figure visualizes the engagement of only those members who have been deemed eligible for a HEDIS/NCQA VBP measure according to the HC VBPQR, who have also received services from a PFro. All of the claims are included for each of the 13 affected individuals. 
 
-Combinations of provider and service code that accounted for less than 1% of the total services delivered were excluded from the analysis. 
-
 Service code T1016 (Case Management) has been removed because its volume of service obscures other clinical measures.
 
 ```{r}
@@ -1193,15 +1192,15 @@ provider_svccode_counts <- provider_svccode_counts %>%
   mutate(Percentage = (n / grand_total) * 100)
 
 # Filter to keep only svccodes accounting for at least 1% of the grand total
-provider_svccode_counts_filtered <- provider_svccode_counts %>%
-  filter(Percentage >= 1) |> 
-  filter(`Service Code` != "T1016")
+# provider_svccode_counts_filtered <- provider_svccode_counts %>%
+#   filter(Percentage >= 1) |> 
+#   filter(`Service Code` != "T1016")
 
 # Create the chart with svccode on the y-axis and the count as a percentage of the grand total on the x-axis, clustered by ProviderName with custom colors
-Graphic_PFroEngagementWithVBPMmbrs <- ggplot(provider_svccode_counts_filtered, aes(x = Percentage, y = `Service Code`, fill = `Alliance PFro Provider`)) +
+Graphic_PFroEngagementWithVBPMmbrs <- ggplot(provider_svccode_counts, aes(x = Percentage, y = `Service Code`, fill = `Alliance PFro Provider`)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "PFro Engagement With VBP Members",
-       subtitle = "As percent of grand total",
+       subtitle = "Percent of all services delivered, unfiltered",
        x = "Percent of Total Services, CY 2022", 
        y = "Service Code") +
   theme_minimal() +
